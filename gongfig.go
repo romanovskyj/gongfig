@@ -8,7 +8,7 @@ import (
 	"github.com/romanovskyj/gongfig/pkg/actions"
 )
 
-func main() {
+func getApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = "Gongfig"
 	app.Usage = "Manage Kong configuration"
@@ -50,6 +50,12 @@ func main() {
 			Flags: flags,
 		},
 	}
+
+	return app
+}
+
+func main() {
+	app := getApp()
 
 	err := app.Run(os.Args)
 
