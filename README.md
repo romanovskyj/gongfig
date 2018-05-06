@@ -1,4 +1,7 @@
 # Gongfig
+
+[![Build Status](https://travis-ci.org/romanovskyj/gongfig.svg?branch=master)](https://travis-ci.org/romanovskyj/gongfig)
+
 Import and export [Kong](https://getkong.org/) configuration tool written in Go
 
 Current version supports only config export for and services and routes resources.
