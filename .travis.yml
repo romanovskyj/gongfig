@@ -1,0 +1,14 @@
+language: go
+
+go: "1.10.x"
+
+os:
+  - linux
+  - osx
+
+before_script:
+  - go get github.com/urfave/cli
+  - go get -u golang.org/x/lint/golint
+
+script:
+  - golint
