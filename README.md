@@ -4,7 +4,7 @@
 
 Import and export [Kong](https://getkong.org/) configuration tool written in Go
 
-Current version supports only config export for and services and routes resources.
+Current version supports only config export for services and routes resources.
 
 ## Install
 `go install "github.com/romanovskyj/gongfig"`
