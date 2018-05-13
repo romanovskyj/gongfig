@@ -29,6 +29,6 @@ help, h - Shows a list of commands or help for one command
 gongfig export --url=http://localhost:8001 --file /tmp/config.json
 ```
 
-## Docker
+## Deployment
 As usually Kong admin api is not reachable externally, you can deploy docker container with gongfig and use it as sidecar application.
-The image name is `eromanovskyj/gongfig`
+The image name is `eromanovskyj/gongfig`. You can also deploy a corresponding pod inside your kubernetes cluster, use `deployment.yml` for it.
