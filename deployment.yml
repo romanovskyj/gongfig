@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gongfig
+spec:
+  selector:
+    matchLabels:
+      app: gongfig
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: gongfig
+        app: gongfig
+    spec:
+      containers:
+      - name: gongfig
+        image: eromanovskyj/gongfig:latest

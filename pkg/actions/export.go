@@ -7,7 +7,6 @@ import (
 	"log"
 	"encoding/json"
 	"io/ioutil"
-	"fmt"
 )
 
 type resourceConfig interface {}
@@ -32,7 +31,7 @@ func Export(adminUrl string, filePath string) {
 		fullPath := uri.String()
 
 		go func(fullPath string, resource string) {
-			response, err := client.Get(uri.String())
+			response, err := client.Get(fullPath)
 
 			if err != nil {
 				log.Fatal("Request to Kong admin failed")
@@ -66,7 +65,6 @@ func Export(adminUrl string, filePath string) {
 		}
 	}
 
-	fmt.Println(config)
 	jsonAnswer, _ := json.MarshalIndent(config, "", "    ")
 	ioutil.WriteFile(filePath, jsonAnswer, 0644)
 }
