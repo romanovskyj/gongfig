@@ -52,10 +52,10 @@ func Export(adminUrl string, filePath string) {
 	uri, _ := url.Parse(adminUrl)
 
 	for _, resource := range Apis {
-		uri.Path = resource
+		uri.Path = resource.path
 		fullPath := uri.String()
 
-		go getResourceList(client, writeData, fullPath, resource)
+		go getResourceList(client, writeData, fullPath, resource.path)
 
 	}
 
