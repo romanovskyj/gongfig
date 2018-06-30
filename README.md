@@ -37,3 +37,6 @@ kubectl port-forward <kong_pod> 8001:8001
 
 Another option is deploing docker container with gongfig and use it as sidecar application.
 The image name is `eromanovskyj/gongfig`. You can also deploy a corresponding pod inside your kubernetes cluster, use `deployment.yml` for it.
+
+## Note
+As routes and services are requested simultaneously during config export, you need to use kong 0.14 or later in order to avoid [this bug](https://github.com/Kong/kong/issues/3440)

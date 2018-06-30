@@ -12,15 +12,29 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// Service - for obtaining data from the server
+// ServicePrepared - service object without Id field as id will be different
+// for importing configuration every time so name is enough for identifying it
 type Service struct {
 	Id string `json:"id"`
 	Name string `json:"name"`
-	Routes []Route
+	Routes []RoutePrepared
 }
 
+type ServicePrepared struct {
+	Name string `json:"name"`
+	Routes []RoutePrepared
+}
+
+// Route - for obtaining data from the server
+// RoutePrepared - route object without Service field as route is already nested inside the server
 type Route struct {
 	Paths []string `json:"paths"`
 	Service Service `json:"service"`
+}
+
+type RoutePrepared struct {
+	Paths []string `json:"paths"`
 }
 
 type Data []interface{}
@@ -74,15 +88,20 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	for _, item := range config[RoutesKey] {
 		var route Route
 		mapstructure.Decode(item, &route)
-		serviceMap[route.Service.Id].Routes = append(serviceMap[route.Service.Id].Routes, route)
+
+		var routePrepared RoutePrepared
+		mapstructure.Decode(item, &routePrepared)
+
+		serviceMap[route.Service.Id].Routes = append(serviceMap[route.Service.Id].Routes, routePrepared)
 	}
 
-	services := []Service{}
+	services := []ServicePrepared{}
 
 	// Rework serviceMap to a slice for writing it to the config file
 	// as service entity already has an id field and it does not need to duplicate it
-	for _, value := range serviceMap{
-		services = append(services, *value)
+	for _, service := range serviceMap{
+		servicePrepared := ServicePrepared{service.Name, service.Routes}
+		services = append(services, servicePrepared)
 	}
 
 	preparedConfig[ServicesKey] = services
