@@ -16,32 +16,58 @@ import (
 // ServicePrepared - service object without Id field as id will be different
 // for importing configuration every time so name is enough for identifying it
 type Service struct {
-	Id string `json:"id"`
-	Name string `json:"name"`
+	Id string `mapstructure:"id"`
+	Name string `mapstructure:"name"`
+	Host string `mapstructure:"host"`
+	Path string `mapstructure:"path"`
+	Port int `mapstructure:"port"`
+	Protocol string `mapstructure:"protocol"`
+	ConnectTimeout int `mapstructure:"connect_timeout"`
+	ReadTimeout int `mapstructure:"read_timeout"`
+	WriteTimeout int `mapstructure:"write_timeout"`
 	Routes []RoutePrepared
 }
 
 type ServicePrepared struct {
-	Name string `json:"name"`
+	Name string
+	Host string
+	Path string
+	Port int
+	Protocol string
+	ConnectTimeout int
+	ReadTimeout int
+	WriteTimeout int
 	Routes []RoutePrepared
 }
 
 // Route - for obtaining data from the server
 // RoutePrepared - route object without Service field as route is already nested inside the server
 type Route struct {
-	Paths []string `json:"paths"`
-	Service Service `json:"service"`
+	Paths []string `mapstructure:"paths"`
+	Service Service `mapstructure:"service"`
+	StripPath bool `mapstructure:"strip_path"`
+	PreserveHost bool `mapstructure:"preserve_host"`
+	RegexPriority int `mapstructure:"regex_priority"`
+	Hosts []string `mapstructure:"hosts"`
+	Protocols []string `mapstructure:"protocols"`
+	Methods []string `mapstructure:"methods"`
 }
 
 type RoutePrepared struct {
-	Paths []string `json:"paths"`
+	Paths []string
+	StripPath bool
+	PreserveHost bool
+	RegexPriority int
+	Hosts []string
+	Protocols []string
+	Methods []string
 }
 
 type Data []interface{}
 
 // All items are contained of data property of json answer
 type resourceConfig struct {
-	Data Data `json:"data"`
+	Data Data `mapstructure:"data"`
 }
 
 // resourceAnswer contains resource name and its configuration so
@@ -100,7 +126,18 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	// Rework serviceMap to a slice for writing it to the config file
 	// as service entity already has an id field and it does not need to duplicate it
 	for _, service := range serviceMap{
-		servicePrepared := ServicePrepared{service.Name, service.Routes}
+		servicePrepared := ServicePrepared{
+			service.Name,
+			service.Host,
+			service.Path,
+			service.Port,
+			service.Protocol,
+			service.ConnectTimeout,
+			service.ReadTimeout,
+			service.WriteTimeout,
+			service.Routes,
+		}
+
 		services = append(services, servicePrepared)
 	}
 
