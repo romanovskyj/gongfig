@@ -67,7 +67,7 @@ type Data []interface{}
 
 // All items are contained of data property of json answer
 type resourceConfig struct {
-	Data Data `mapstructure:"data"`
+	Data Data `json:"data"`
 }
 
 // resourceAnswer contains resource name and its configuration so
