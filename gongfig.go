@@ -44,6 +44,7 @@ func getApp() *cli.App {
 			Usage: "Apply services and routes from configuration file to the kong deployment",
 			Action: func(c *cli.Context) error {
 				fmt.Println("The configuration is importing...")
+				actions.Import(c.String("url"), c.String("file"))
 
 				return nil
 			},

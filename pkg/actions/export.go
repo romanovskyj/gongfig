@@ -2,7 +2,6 @@ package actions
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 	"log"
 	"encoding/json"
@@ -11,57 +10,6 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 )
-
-// Service - for obtaining data from the server
-// ServicePrepared - service object without Id field as id will be different
-// for importing configuration every time so name is enough for identifying it
-type Service struct {
-	Id string `mapstructure:"id"`
-	Name string `mapstructure:"name"`
-	Host string `mapstructure:"host"`
-	Path string `mapstructure:"path"`
-	Port int `mapstructure:"port"`
-	Protocol string `mapstructure:"protocol"`
-	ConnectTimeout int `mapstructure:"connect_timeout"`
-	ReadTimeout int `mapstructure:"read_timeout"`
-	WriteTimeout int `mapstructure:"write_timeout"`
-	Routes []RoutePrepared
-}
-
-type ServicePrepared struct {
-	Name string
-	Host string
-	Path string
-	Port int
-	Protocol string
-	ConnectTimeout int
-	ReadTimeout int
-	WriteTimeout int
-	Routes []RoutePrepared
-}
-
-// Route - for obtaining data from the server
-// RoutePrepared - route object without Service field as route is already nested inside the server
-type Route struct {
-	Paths []string `mapstructure:"paths"`
-	Service Service `mapstructure:"service"`
-	StripPath bool `mapstructure:"strip_path"`
-	PreserveHost bool `mapstructure:"preserve_host"`
-	RegexPriority int `mapstructure:"regex_priority"`
-	Hosts []string `mapstructure:"hosts"`
-	Protocols []string `mapstructure:"protocols"`
-	Methods []string `mapstructure:"methods"`
-}
-
-type RoutePrepared struct {
-	Paths []string
-	StripPath bool
-	PreserveHost bool
-	RegexPriority int
-	Hosts []string
-	Protocols []string
-	Methods []string
-}
 
 type Data []interface{}
 
@@ -121,7 +69,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 		serviceMap[route.Service.Id].Routes = append(serviceMap[route.Service.Id].Routes, routePrepared)
 	}
 
-	services := []ServicePrepared{}
+	var services []ServicePrepared
 
 	// Rework serviceMap to a slice for writing it to the config file
 	// as service entity already has an id field and it does not need to duplicate it
@@ -152,12 +100,10 @@ func Export(adminUrl string, filePath string) {
 	// We obtain resources data concurrently and push them to the channel that
 	// will be handled by file writer
 	writeData := make(chan *resourceAnswer)
-	uri, _ := url.Parse(adminUrl)
 
 	// Collect representation of all resources
 	for _, resource := range Apis {
-		uri.Path = resource
-		fullPath := uri.String()
+		fullPath := getFullPath(adminUrl, resource)
 
 		go getResourceList(client, writeData, fullPath, resource)
 
