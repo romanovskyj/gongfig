@@ -8,16 +8,12 @@ import (
 	"bytes"
 	"time"
 	"fmt"
-	"sync"
 	"github.com/mitchellh/mapstructure"
 	"strings"
 )
 
-var wg sync.WaitGroup
 
 func createServiceWithRoutes(client *http.Client, url string, service ServicePrepared) {
-	defer wg.Done()
-
 	// Get path to the services collection
 	servicesUrl := getFullPath(url, ServicesKey)
 
@@ -71,15 +67,12 @@ func Import(adminUrl string, filePath string) {
 
 	// Current implementation imports services and nested routes only
 	for _, item := range configMap[ServicesKey] {
-		wg.Add(1)
-
 		// Convert item to service object for further creating it at Kong
 		var service ServicePrepared
 		mapstructure.Decode(item, &service)
 
-		go createServiceWithRoutes(client, adminUrl, service)
+		createServiceWithRoutes(client, adminUrl, service)
 	}
 
-	wg.Wait()
 	fmt.Println("Done")
 }
