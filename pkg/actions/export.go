@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/mitchellh/mapstructure"
+	"sort"
 )
 
 type Data []interface{}
@@ -88,6 +89,11 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 
 		services = append(services, servicePrepared)
 	}
+
+	//Sort services by name
+	sort.Slice(services, func(i, j int) bool {
+		return services[i].Name < services[j].Name
+	})
 
 	preparedConfig[ServicesKey] = services
 
