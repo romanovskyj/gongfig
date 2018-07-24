@@ -47,11 +47,11 @@ type Route struct {
 }
 
 type RoutePrepared struct {
-	Paths []string `json:"paths"`
-	StripPath bool	`json:"strip_path"`
-	PreserveHost bool `json:"preserve_host"`
-	RegexPriority int `json:"regex_priority"`
-	Hosts []string `json:"hosts"`
-	Protocols []string `json:"protocols"`
-	Methods []string `json:"methods"`
+	Paths []string `json:"paths" mapstructure:"paths"`
+	StripPath bool	`json:"strip_path" mapstructure:"strip_path"`
+	PreserveHost bool `json:"preserve_host" mapstructure:"preserve_host"`
+	RegexPriority int `json:"regex_priority" mapstructure:"regex_priority"`
+	Hosts []string `json:"hosts" mapstructure:"hosts"`
+	Protocols []string `json:"protocols" mapstructure:"protocols"`
+	Methods []string `json:"methods" mapstructure:"methods"`
 }
