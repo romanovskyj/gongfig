@@ -22,14 +22,14 @@ type Service struct {
 }
 
 type ServicePrepared struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	Path string `json:"path"`
-	Port int `json:"port"`
-	Protocol string `json:"protocol"`
-	ConnectTimeout int `json:"connect_timeout"`
-	ReadTimeout int `json:"read_timeout"`
-	WriteTimeout int `json:"write_timeout"`
+	Name string `json:"name" mapstructure:"name"`
+	Host string `json:"host" mapstructure:"host"`
+	Path string `json:"path" mapstructure:"path"`
+	Port int `json:"port" mapstructure:"port"`
+	Protocol string `json:"protocol" mapstructure:"protocol"`
+	ConnectTimeout int `json:"connect_timeout" mapstructure:"connect_timeout"`
+	ReadTimeout int `json:"read_timeout" mapstructure:"read_timeout"`
+	WriteTimeout int `json:"write_timeout" mapstructure:"write_timeout"`
 	Routes []RoutePrepared `json:"routes,omitempty"`
 }
 
