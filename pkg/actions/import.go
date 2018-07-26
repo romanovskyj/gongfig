@@ -13,7 +13,9 @@ import (
 )
 
 
-func createServiceWithRoutes(client *http.Client, url string, service ServicePrepared) {
+func createServiceWithRoutes(client *http.Client, url string, service ServicePrepared, reqLimitChan <-chan bool) {
+	defer func() { <-reqLimitChan}()
+
 	// Get path to the services collection
 	servicesUrl := getFullPath(url, ServicesKey)
 
@@ -25,7 +27,12 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 	json.NewEncoder(body).Encode(service)
 
 	// Create services first, as routes are nested resources
-	_, err := client.Post(servicesUrl, "application/json;charset=utf-8", body)
+	response, err := client.Post(servicesUrl, "application/json;charset=utf-8", body)
+
+	if response.StatusCode != 201 {
+		log.Fatal("Was not able to create service ", service.Name)
+		return
+	}
 
 	if err != nil {
 		log.Fatal("Request to Kong admin failed")
@@ -42,7 +49,12 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 		body := new(bytes.Buffer)
 		json.NewEncoder(body).Encode(route)
 
-		_, err = client.Post(routesUrl, "application/json;charset=utf-8", body)
+		response, err = client.Post(routesUrl, "application/json;charset=utf-8", body)
+
+		if response.StatusCode != 201 {
+			log.Fatal("Was not able to create route for ", service.Name)
+			return
+		}
 	}
 
 }
@@ -65,13 +77,18 @@ func Import(adminUrl string, filePath string) {
 		return
 	}
 
+	// In order to not overload the server, limit concurrent post requests to 10
+	reqLimitChan := make(chan bool, 5)
+
 	// Current implementation imports services and nested routes only
 	for _, item := range configMap[ServicesKey] {
+		reqLimitChan <- true
+
 		// Convert item to service object for further creating it at Kong
 		var service ServicePrepared
 		mapstructure.Decode(item, &service)
 
-		createServiceWithRoutes(client, adminUrl, service)
+		go createServiceWithRoutes(client, adminUrl, service, reqLimitChan)
 	}
 
 	fmt.Println("Done")
