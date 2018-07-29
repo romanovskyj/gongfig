@@ -91,5 +91,10 @@ func Import(adminUrl string, filePath string) {
 		go createServiceWithRoutes(client, adminUrl, service, reqLimitChan)
 	}
 
+	//Be aware all left requests are finished
+	for i := 0; i < cap(reqLimitChan); i++ {
+		reqLimitChan <- true
+	}
+
 	fmt.Println("Done")
 }
