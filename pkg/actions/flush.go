@@ -6,13 +6,55 @@ import (
 	"os"
 	"net/http"
 	"time"
+	"github.com/mitchellh/mapstructure"
+	"strings"
+	"log"
 )
 
-func flushResources(config map[string]Data) {
+func flushResources(client *http.Client, url string, config map[string]Data) {
 	// Firstly we need delete routes and only then services,
 	// as routes are nested resources of services
+	for _, resourceType := range []string{RoutesKey, ServicesKey} {
+		// In order to not overload the kong, limit concurrent post requests to 10
+		reqLimitChan := make(chan bool, 10)
 
+		for _, item := range config[resourceType] {
+			reqLimitChan <- true
 
+			// Convert item to service object for further creating it at Kong
+			var instance ResourceInstance
+			mapstructure.Decode(item, &instance)
+
+			go func(instance ResourceInstance){
+				defer func() { <-reqLimitChan}()
+
+				// Compose path to routes
+				instancePathElements := []string{resourceType, instance.Id}
+				instancePath := strings.Join(instancePathElements, "/")
+				instanceUrl := getFullPath(url, instancePath)
+
+				request, _ := http.NewRequest(http.MethodDelete, instanceUrl, nil)
+
+				response, err := client.Do(request)
+
+				if err != nil {
+					log.Fatal("Request to Kong admin failed")
+					return
+				}
+
+				if response.StatusCode != 204 {
+					log.Fatal("Was not able to Delete item ", instance.Id)
+					return
+				}
+
+			}(instance)
+		}
+
+		// Wait till all routes deleting is finished
+		for i := 0; i < cap(reqLimitChan); i++ {
+			reqLimitChan <- true
+		}
+	}
 }
 
 func Flush(adminUrl string) {
@@ -48,7 +90,8 @@ func Flush(adminUrl string) {
 			resourcesNum--
 
 			if resourcesNum == 0 {
-				flushResources(config)
+				flushResources(client, adminUrl, config)
+				fmt.Println("Done")
 				break
 			}
 		}

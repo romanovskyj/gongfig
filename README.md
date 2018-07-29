@@ -16,6 +16,7 @@ Current version supports only config import and export for services and routes r
 ```
 export - Obtain services and routes, write it to the config file
 import - Create corresponding services and routes based on provided config file
+flush - Delete all routes and services from kong
 help, h - Shows a list of commands or help for one command
 ```
 
@@ -32,6 +33,10 @@ gongfig export --url=http://localhost:8001 --file /tmp/config.json
 
 ```
 gongfig import --url=http://localhost:8001 --file /tmp/config.json
+```
+
+```
+gongfig flush --url=http://localhost:8001
 ```
 
 ## Deployment

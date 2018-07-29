@@ -55,3 +55,8 @@ type RoutePrepared struct {
 	Protocols []string `json:"protocols" mapstructure:"protocols"`
 	Methods []string `json:"methods" mapstructure:"methods"`
 }
+
+// ResourceInstance can be both service or route
+type ResourceInstance struct {
+	Id string `mapstructure:"id"`
+}

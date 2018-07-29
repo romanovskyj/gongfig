@@ -29,13 +29,13 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 	// Create services first, as routes are nested resources
 	response, err := client.Post(servicesUrl, "application/json;charset=utf-8", body)
 
-	if response.StatusCode != 201 {
-		log.Fatal("Was not able to create service ", service.Name)
+	if err != nil {
+		log.Fatal("Request to Kong admin failed")
 		return
 	}
 
-	if err != nil {
-		log.Fatal("Request to Kong admin failed")
+	if response.StatusCode != 201 {
+		log.Fatal("Was not able to create service ", service.Name)
 		return
 	}
 
