@@ -50,6 +50,16 @@ func getApp() *cli.App {
 			},
 			Flags: flags,
 		},
+		{
+			Name: "flush",
+			Usage: "Delete all services and routes from configuration file to the kong deployment",
+			Action: func(c *cli.Context) error {
+				actions.Flush(c.String("url"))
+
+				return nil
+			},
+			Flags: flags,
+		},
 	}
 
 	return app

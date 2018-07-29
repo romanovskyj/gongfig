@@ -3,7 +3,6 @@ package actions
 import (
 	"net/http"
 	"time"
-	"log"
 	"encoding/json"
 	"io/ioutil"
 	"fmt"
@@ -25,26 +24,6 @@ type resourceAnswer struct {
 	resourceName string
 	config Data
 }
-
-// Get list of resources by http and pass it to the channel where it will be writed to a disk
-func getResourceList(client *http.Client, writeData chan *resourceAnswer, fullPath string, resource string) {
-	response, err := client.Get(fullPath)
-
-	if err != nil {
-		log.Fatal("Request to Kong admin failed")
-		return
-	}
-
-	defer response.Body.Close()
-
-	var body resourceConfig
-	json.NewDecoder(response.Body).Decode(&body)
-
-	// send only data field for writing in order to write { "service": [items...] } instead of
-	// { "service": {"data": [items...] }}
-	writeData <- &resourceAnswer{resource, body.Data}
-}
-
 
 // Prepare config for writing: put routes as nested resources of services, omit unnecessary field etc
 func composeConfig(config map[string]Data) map[string]interface{} {
