@@ -78,7 +78,7 @@ func Import(adminUrl string, filePath string) {
 	}
 
 	// In order to not overload the server, limit concurrent post requests to 10
-	reqLimitChan := make(chan bool, 5)
+	reqLimitChan := make(chan bool, 10)
 
 	// Current implementation imports services and nested routes only
 	for _, item := range configMap[ServicesKey] {

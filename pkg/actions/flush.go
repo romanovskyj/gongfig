@@ -21,7 +21,7 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 		for _, item := range config[resourceType] {
 			reqLimitChan <- true
 
-			// Convert item to service object for further creating it at Kong
+			// Convert item to resource object for further deleting it from Kong
 			var instance ResourceInstance
 			mapstructure.Decode(item, &instance)
 
