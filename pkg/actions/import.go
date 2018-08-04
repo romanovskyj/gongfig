@@ -31,12 +31,12 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 
 	if err != nil {
 		log.Fatal("Request to Kong admin failed")
-		return
+		os.Exit(1)
 	}
 
 	if response.StatusCode != 201 {
 		log.Fatal("Was not able to create service ", service.Name)
-		return
+		os.Exit(1)
 	}
 
 	// Compose path to routes
@@ -53,7 +53,7 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 
 		if response.StatusCode != 201 {
 			log.Fatal("Was not able to create route for ", service.Name)
-			return
+			os.Exit(1)
 		}
 	}
 
@@ -66,7 +66,7 @@ func Import(adminUrl string, filePath string) {
 
 	if err != nil {
 		log.Fatal("Failed to read config file", err.Error())
-		return
+		os.Exit(1)
 	}
 
 	jsonParser := json.NewDecoder(configFile)
@@ -74,7 +74,7 @@ func Import(adminUrl string, filePath string) {
 
 	if err :=  jsonParser.Decode(&configMap); err != nil {
 		log.Fatal("Failed to parse json file")
-		return
+		os.Exit(1)
 	}
 
 	// In order to not overload the server, limit concurrent post requests to 10
