@@ -17,6 +17,7 @@ before_script:
 
 script:
   - golint ./...
+  - go test ./...
 
 deploy:
   provider: script

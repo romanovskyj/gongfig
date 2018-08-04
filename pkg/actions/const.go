@@ -1,5 +1,7 @@
 package actions
 
+const DefaultUrl = "http://localhost:8001"
+
 const ServicesKey = "services"
 const RoutesKey = "routes"
 
