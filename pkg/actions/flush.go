@@ -21,7 +21,7 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 		for _, item := range config[resourceType] {
 			reqLimitChan <- true
 
-			// Convert item to service object for further creating it at Kong
+			// Convert item to resource object for further deleting it from Kong
 			var instance ResourceInstance
 			mapstructure.Decode(item, &instance)
 
@@ -39,12 +39,12 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 
 				if err != nil {
 					log.Fatal("Request to Kong admin failed")
-					return
+					os.Exit(1)
 				}
 
 				if response.StatusCode != 204 {
 					log.Fatal("Was not able to Delete item ", instance.Id)
-					return
+					os.Exit(1)
 				}
 
 			}(instance)

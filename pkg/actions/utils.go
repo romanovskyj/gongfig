@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"log"
 	"encoding/json"
+	"os"
 )
 
 // Get url and path and return concatenation
@@ -21,7 +22,7 @@ func getResourceList(client *http.Client, writeData chan *resourceAnswer, fullPa
 
 	if err != nil {
 		log.Fatal("Request to Kong admin failed")
-		return
+		os.Exit(1)
 	}
 
 	defer response.Body.Close()

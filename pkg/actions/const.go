@@ -26,7 +26,7 @@ type Service struct {
 type ServicePrepared struct {
 	Name string `json:"name" mapstructure:"name"`
 	Host string `json:"host" mapstructure:"host"`
-	Path string `json:"path" mapstructure:"path"`
+	Path string `json:"path,omitempty" mapstructure:"path"`
 	Port int `json:"port" mapstructure:"port"`
 	Protocol string `json:"protocol" mapstructure:"protocol"`
 	ConnectTimeout int `json:"connect_timeout" mapstructure:"connect_timeout"`
