@@ -31,9 +31,9 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 				// Compose path to routes
 				instancePathElements := []string{resourceType, instance.Id}
 				instancePath := strings.Join(instancePathElements, "/")
-				instanceUrl := getFullPath(url, instancePath)
+				instanceURL := getFullPath(url, instancePath)
 
-				request, _ := http.NewRequest(http.MethodDelete, instanceUrl, nil)
+				request, _ := http.NewRequest(http.MethodDelete, instanceURL, nil)
 
 				response, err := client.Do(request)
 
@@ -57,7 +57,8 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 	}
 }
 
-func Flush(adminUrl string) {
+// Flush - main function that is called by CLI in wipe Kong config
+func Flush(adminURL string) {
 	fmt.Println("All services and routes will be deleted from kong, are you sure? Write yes or no:")
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
@@ -74,7 +75,7 @@ func Flush(adminUrl string) {
 
 		// Collect representation of all resources
 		for _, resource := range Apis {
-			fullPath := getFullPath(adminUrl, resource)
+			fullPath := getFullPath(adminURL, resource)
 
 			go getResourceList(client, flushData, fullPath, resource)
 
@@ -90,7 +91,7 @@ func Flush(adminUrl string) {
 			resourcesNum--
 
 			if resourcesNum == 0 {
-				flushResources(client, adminUrl, config)
+				flushResources(client, adminURL, config)
 				fmt.Println("Done")
 				break
 			}

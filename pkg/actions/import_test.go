@@ -33,7 +33,7 @@ func prepareAndCreateService(url string){
 
 func TestCannotConnect(t *testing.T) {
 	if os.Getenv("CHECK_EXIT") == "1" {
-		prepareAndCreateService(DefaultUrl)
+		prepareAndCreateService(DefaultURL)
 	}
 
 	err := runExit("TestCannotConnect")

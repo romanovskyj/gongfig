@@ -11,13 +11,6 @@ import (
 	"sort"
 )
 
-type Data []interface{}
-
-// All items are contained of data property of json answer
-type resourceConfig struct {
-	Data Data `json:"data"`
-}
-
 // resourceAnswer contains resource name and its configuration so
 // file writer can compose json with name as a key and complete resource configuration as a value
 type resourceAnswer struct {
@@ -79,7 +72,8 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	return preparedConfig
 }
 
-func Export(adminUrl string, filePath string) {
+// Export - main function that is called by CLI in order to collect Kong config
+func Export(adminURL string, filePath string) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	// We obtain resources data concurrently and push them to the channel that
@@ -88,7 +82,7 @@ func Export(adminUrl string, filePath string) {
 
 	// Collect representation of all resources
 	for _, resource := range Apis {
-		fullPath := getFullPath(adminUrl, resource)
+		fullPath := getFullPath(adminURL, resource)
 
 		go getResourceList(client, writeData, fullPath, resource)
 

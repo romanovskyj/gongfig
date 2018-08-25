@@ -17,7 +17,7 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 	defer func() { <-reqLimitChan}()
 
 	// Get path to the services collection
-	servicesUrl := getFullPath(url, ServicesKey)
+	servicesURL := getFullPath(url, ServicesKey)
 
 	// Clear routes field as it is created in separate request
 	routes := service.Routes
@@ -27,7 +27,7 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 	json.NewEncoder(body).Encode(service)
 
 	// Create services first, as routes are nested resources
-	response, err := client.Post(servicesUrl, "application/json;charset=utf-8", body)
+	response, err := client.Post(servicesURL, "application/json;charset=utf-8", body)
 
 	if err != nil {
 		log.Fatal("Request to Kong admin failed")
@@ -42,14 +42,14 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 	// Compose path to routes
 	routesPathElements := []string{ServicesKey, service.Name, RoutesKey}
 	routesPath := strings.Join(routesPathElements, "/")
-	routesUrl := getFullPath(url, routesPath)
+	routesURL := getFullPath(url, routesPath)
 
 	// Create routes one by one
 	for _, route := range routes {
 		body := new(bytes.Buffer)
 		json.NewEncoder(body).Encode(route)
 
-		response, err = client.Post(routesUrl, "application/json;charset=utf-8", body)
+		response, err = client.Post(routesURL, "application/json;charset=utf-8", body)
 
 		if response.StatusCode != 201 {
 			log.Fatal("Was not able to create route for ", service.Name)
@@ -59,7 +59,8 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 
 }
 
-func Import(adminUrl string, filePath string) {
+// Import - main function that is called by CLI in order to create resources at Kong service
+func Import(adminURL string, filePath string) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	configFile, err := os.OpenFile(filePath, os.O_RDONLY,0444)
@@ -88,7 +89,7 @@ func Import(adminUrl string, filePath string) {
 		var service ServicePrepared
 		mapstructure.Decode(item, &service)
 
-		go createServiceWithRoutes(client, adminUrl, service, reqLimitChan)
+		go createServiceWithRoutes(client, adminURL, service, reqLimitChan)
 	}
 
 	//Be aware all left requests are finished
