@@ -8,10 +8,18 @@ import (
 	"os"
 )
 
+// Data - general interface for storing json body answers
+type Data []interface{}
+
+// All items are contained of data property of json answer
+type resourceConfig struct {
+	Data Data `json:"data"`
+}
+
 // Get url and path and return concatenation
 // e.g http://localhost:8001, services will return http://localhost:8001/services
-func getFullPath(adminUrl string, path string) string {
-	uri, _ := url.Parse(adminUrl)
+func getFullPath(adminURL string, path string) string {
+	uri, _ := url.Parse(adminURL)
 	uri.Path = path
 	return uri.String()
 }

@@ -17,7 +17,7 @@ func getApp() *cli.App {
 	flags := []cli.Flag {
 		cli.StringFlag{
 			Name: "url",
-			Value: actions.DefaultUrl,
+			Value: actions.DefaultURL,
 			Usage: "Kong admin api url",
 		},
 		cli.StringFlag{
