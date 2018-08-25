@@ -65,7 +65,7 @@ func Import(adminUrl string, filePath string) {
 	configFile, err := os.OpenFile(filePath, os.O_RDONLY,0444)
 
 	if err != nil {
-		log.Fatal("Failed to read config file", err.Error())
+		log.Fatal("Failed to read config file. ", err.Error())
 		os.Exit(1)
 	}
 

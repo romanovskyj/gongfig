@@ -12,6 +12,8 @@ import (
 )
 
 // Run particular test in separate thread and test it exits with non zero value
+// such test implementation is needed as tested function does not return with error
+// but simply stops the execution of the whole program (os.Exit)
 func runExit(testName string) error {
 	cmd := exec.Command(os.Args[0], strings.Join([]string{"-test.run=", testName}, ""))
 	cmd.Env = append(os.Environ(), "CHECK_EXIT=1")
@@ -78,7 +80,6 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 		// Use path without slash ([1:])
 		switch path := request.URL.Path[1:]; path {
 		case ServicesKey:
-			serviceCreated = true
 			var body ServicePrepared
 			json.NewDecoder(request.Body).Decode(&body)
 
@@ -86,14 +87,17 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 				t.Error("service name is not correct")
 			}
 
+			serviceCreated = true
+
 		case routesPath:
-			routeCreated = true
 			var body RoutePrepared
 			json.NewDecoder(request.Body).Decode(&body)
 
 			if body.Paths[0] != TestService.Routes[0].Paths[0] {
 				t.Error("route path is not correct")
 			}
+
+			routeCreated = true
 		}
 		
 	}))
@@ -109,4 +113,43 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 	if !routeCreated {
 		t.Error("Route was not created")
 	}
+}
+
+func TestServiceCreatedRoutesFailed(t *testing.T) {
+	if os.Getenv("CHECK_EXIT") == "1" {
+		routesPathElements := []string{ServicesKey, TestService.Name, RoutesKey}
+		routesPath := strings.Join(routesPathElements, "/")
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			// Use path without slash ([1:])
+			switch path := request.URL.Path[1:]; path {
+			case ServicesKey:
+				var body ServicePrepared
+				json.NewDecoder(request.Body).Decode(&body)
+
+				if body.Name != TestService.Name {
+					t.Error("service name is not correct")
+				}
+
+				w.WriteHeader(http.StatusCreated)
+
+			case routesPath:
+				w.WriteHeader(http.StatusBadRequest)
+			}
+
+		}))
+
+		defer ts.Close()
+
+		prepareAndCreateService(ts.URL)
+	}
+
+	err := runExit("TestServiceCreatedRoutesFailed")
+	e, ok := err.(*exec.ExitError)
+
+	if ok && !e.Success() {
+		return
+	}
+
+	t.Fatalf("process ran with err %v, want exit status 1", err)
 }
