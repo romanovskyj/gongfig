@@ -61,7 +61,7 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 
 // Import - main function that is called by CLI in order to create resources at Kong service
 func Import(adminURL string, filePath string) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: Timeout * time.Second}
 
 	configFile, err := os.OpenFile(filePath, os.O_RDONLY,0444)
 

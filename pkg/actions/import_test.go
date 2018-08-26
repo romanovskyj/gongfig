@@ -11,32 +11,21 @@ import (
 	"encoding/json"
 )
 
-// Run particular test in separate thread and test it exits with non zero value
-// such test implementation is needed as tested function does not return with error
-// but simply stops the execution of the whole program (os.Exit)
-func runExit(testName string) error {
-	cmd := exec.Command(os.Args[0], strings.Join([]string{"-test.run=", testName}, ""))
-	cmd.Env = append(os.Environ(), "CHECK_EXIT=1")
-	err := cmd.Run()
-
-	return err
-}
-
 // Create httpclient, service, chan and run CreateServiceWithRoutes with it
 func prepareAndCreateService(url string){
 	client := &http.Client{Timeout: 1 * time.Second}
 	reqLimitChan := make(chan bool, 5)
 	reqLimitChan <- true
 
-	createServiceWithRoutes(client, url, TestService, reqLimitChan)
+	createServiceWithRoutes(client, url, TestEmailService, reqLimitChan)
 }
 
-func TestCannotConnect(t *testing.T) {
+func TestImportCannotConnect(t *testing.T) {
 	if os.Getenv("CHECK_EXIT") == "1" {
 		prepareAndCreateService(DefaultURL)
 	}
 
-	err := runExit("TestCannotConnect")
+	err := runExit("TestImportCannotConnect")
 	e, ok := err.(*exec.ExitError)
 
 	if ok && !e.Success() {
@@ -46,7 +35,7 @@ func TestCannotConnect(t *testing.T) {
 	t.Fatalf("process ran with err %v, want exit status 1", err)
 }
 
-func TestBadRequest(t *testing.T) {
+func TestImportBadRequest(t *testing.T) {
 	if os.Getenv("CHECK_EXIT") == "1" {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -56,7 +45,7 @@ func TestBadRequest(t *testing.T) {
 		prepareAndCreateService(ts.URL)
 	}
 
-	err := runExit("TestBadRequest")
+	err := runExit("TestImportBadRequest")
 	e, ok := err.(*exec.ExitError)
 
 	if ok && !e.Success() {
@@ -68,7 +57,7 @@ func TestBadRequest(t *testing.T) {
 
 func TestServiceWithRoutesCreated(t *testing.T) {
 	//Create path /services/<service name>/routes
-	routesPathElements := []string{ServicesKey, TestService.Name, RoutesKey}
+	routesPathElements := []string{ServicesKey, TestEmailService.Name, RoutesKey}
 	routesPath := strings.Join(routesPathElements, "/")
 
 	serviceCreated := false
@@ -83,7 +72,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 			var body ServicePrepared
 			json.NewDecoder(request.Body).Decode(&body)
 
-			if body.Name != TestService.Name {
+			if body.Name != TestEmailService.Name {
 				t.Error("service name is not correct")
 			}
 
@@ -93,7 +82,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 			var body RoutePrepared
 			json.NewDecoder(request.Body).Decode(&body)
 
-			if body.Paths[0] != TestService.Routes[0].Paths[0] {
+			if body.Paths[0] != TestEmailService.Routes[0].Paths[0] {
 				t.Error("route path is not correct")
 			}
 
@@ -117,7 +106,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 
 func TestServiceCreatedRoutesFailed(t *testing.T) {
 	if os.Getenv("CHECK_EXIT") == "1" {
-		routesPathElements := []string{ServicesKey, TestService.Name, RoutesKey}
+		routesPathElements := []string{ServicesKey, TestEmailService.Name, RoutesKey}
 		routesPath := strings.Join(routesPathElements, "/")
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
@@ -127,7 +116,7 @@ func TestServiceCreatedRoutesFailed(t *testing.T) {
 				var body ServicePrepared
 				json.NewDecoder(request.Body).Decode(&body)
 
-				if body.Name != TestService.Name {
+				if body.Name != TestEmailService.Name {
 					t.Error("service name is not correct")
 				}
 
