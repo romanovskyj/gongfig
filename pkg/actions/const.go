@@ -1,5 +1,8 @@
 package actions
 
+// Timeout - how long http client should wait before terminating connection
+const Timeout = 10
+
 // DefaultURL keeps url when kong api is accessed with port forwarding (as mentioned in readme)
 const DefaultURL = "http://localhost:8001"
 

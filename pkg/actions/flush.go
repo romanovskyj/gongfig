@@ -5,11 +5,43 @@ import (
 	"bufio"
 	"os"
 	"net/http"
-	"time"
 	"github.com/mitchellh/mapstructure"
 	"strings"
 	"log"
+	"time"
 )
+
+func flushAll(adminURL string) {
+	client := &http.Client{Timeout: Timeout * time.Second}
+
+	// We obtain resources data concurrently and push them to the channel that
+	// will be handled by services and routes deleting logic
+	flushData := make(chan *resourceAnswer)
+
+	// Collect representation of all resources
+	for _, resource := range Apis {
+		fullPath := getFullPath(adminURL, resource)
+
+		go getResourceList(client, flushData, fullPath, resource)
+
+	}
+
+	resourcesNum := len(Apis)
+	config := map[string]Data{}
+
+	for {
+		resource := <- flushData
+		config[resource.resourceName] = resource.config
+
+		resourcesNum--
+
+		if resourcesNum == 0 {
+			flushResources(client, adminURL, config)
+			fmt.Println("Done")
+			break
+		}
+	}
+}
 
 func flushResources(client *http.Client, url string, config map[string]Data) {
 	// Firstly we need delete routes and only then services,
@@ -67,36 +99,7 @@ func Flush(adminURL string) {
 	answer = answer[0:len(answer)-1]
 
 	if answer== "yes" {
-		client := &http.Client{Timeout: 10 * time.Second}
-
-		// We obtain resources data concurrently and push them to the channel that
-		// will be handled by services and routes deleting logic
-		flushData := make(chan *resourceAnswer)
-
-		// Collect representation of all resources
-		for _, resource := range Apis {
-			fullPath := getFullPath(adminURL, resource)
-
-			go getResourceList(client, flushData, fullPath, resource)
-
-		}
-
-		resourcesNum := len(Apis)
-		config := map[string]Data{}
-
-		for {
-			resource := <- flushData
-			config[resource.resourceName] = resource.config
-
-			resourcesNum--
-
-			if resourcesNum == 0 {
-				flushResources(client, adminURL, config)
-				fmt.Println("Done")
-				break
-			}
-		}
-
+		flushAll(adminURL)
 	} else {
 		fmt.Println("Configuration was not flushed")
 	}

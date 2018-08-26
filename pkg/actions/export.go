@@ -72,9 +72,8 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	return preparedConfig
 }
 
-// Export - main function that is called by CLI in order to collect Kong config
-func Export(adminURL string, filePath string) {
-	client := &http.Client{Timeout: 10 * time.Second}
+func getPreparedConfig(adminURL string) map[string]interface{} {
+	client := &http.Client{Timeout: Timeout * time.Second}
 
 	// We obtain resources data concurrently and push them to the channel that
 	// will be handled by file writer
@@ -108,6 +107,13 @@ func Export(adminURL string, filePath string) {
 			break
 		}
 	}
+
+	return preparedConfig
+}
+
+// Export - main function that is called by CLI in order to collect Kong config
+func Export(adminURL string, filePath string) {
+	preparedConfig := getPreparedConfig(adminURL)
 
 	jsonAnswer, _ := json.MarshalIndent(preparedConfig, "", "    ")
 	ioutil.WriteFile(filePath, jsonAnswer, 0644)
