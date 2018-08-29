@@ -2,9 +2,9 @@
 
 [![Build Status](https://travis-ci.org/romanovskyj/gongfig.svg?branch=master)](https://travis-ci.org/romanovskyj/gongfig)
 
-Import and export [Kong](https://getkong.org/) configuration tool written in Go
+Import and export [Kong](https://konghq.com/) configuration tool written in Go
 
-Current version supports only config import and export for services and routes resources.
+Current version supports config import and export for services and routes resources. It also supports flushing kong services and routes by one click.
 
 ## Install
 `go get "github.com/romanovskyj/gongfig"`
@@ -14,9 +14,9 @@ Current version supports only config import and export for services and routes r
 
 #### Commands
 ```
-export - Obtain services and routes, write it to the config file
-import - Create corresponding services and routes based on provided config file
-flush - Delete all routes and services from kong
+export - Dump kong services and routes, write it to the config file
+import - Create corresponding kong services and routes based on provided config file
+flush - Delete all services and routes from kong
 help, h - Shows a list of commands or help for one command
 ```
 
