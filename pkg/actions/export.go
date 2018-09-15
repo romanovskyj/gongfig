@@ -25,14 +25,14 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 
 	// Create a map of services where key is service id in order to effectively
 	// search services for pasting there corresponding routes
-	for _, item := range config[ServicesKey] {
+	for _, item := range config[ServicesPath] {
 		var service Service
 		mapstructure.Decode(item, &service)
 		serviceMap[service.Id] = &service
 	}
 
 	// Add routes to services as nested files so futher it will be written to a file
-	for _, item := range config[RoutesKey] {
+	for _, item := range config[RoutesPath] {
 		var route Route
 		mapstructure.Decode(item, &route)
 
@@ -46,7 +46,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 
 	// Rework serviceMap to a slice for writing it to the config file
 	// as service entity already has an id field and it does not need to duplicate it
-	for _, service := range serviceMap{
+	for _, service := range serviceMap {
 		servicePrepared := ServicePrepared{
 			service.Name,
 			service.Host,
@@ -67,7 +67,17 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 		return services[i].Name < services[j].Name
 	})
 
-	preparedConfig[ServicesKey] = services
+	preparedConfig[ServicesPath] = services
+
+	for _, resourceBundle := range ResourceBundles {
+		var collection []interface{}
+		for _, item := range config[resourceBundle.Path] {
+			mapstructure.Decode(item, &resourceBundle.Struct)
+			collection = append(collection, resourceBundle.Struct)
+		}
+
+		preparedConfig[resourceBundle.Path] = collection
+	}
 
 	return preparedConfig
 }

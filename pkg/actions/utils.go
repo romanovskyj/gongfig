@@ -6,6 +6,7 @@ import (
 	"log"
 	"encoding/json"
 	"os"
+	"bytes"
 )
 
 // Data - general interface for storing json body answers
@@ -41,4 +42,36 @@ func getResourceList(client *http.Client, writeData chan *resourceAnswer, fullPa
 	// send only data field for writing in order to write { "service": [items...] } instead of
 	// { "service": {"data": [items...] }}
 	writeData <- &resourceAnswer{resource, body.Data}
+}
+
+func makePost(client *http.Client, resource interface{}, url string) error {
+	body := new(bytes.Buffer)
+	json.NewEncoder(body).Encode(resource)
+
+	// Create services first, as routes are nested resources
+	response, err := client.Post(url, "application/json;charset=utf-8", body)
+
+	if err != nil {
+		log.Fatal("Request to Kong admin failed")
+		return err
+	}
+
+	if response.StatusCode != 201 {
+		log.Fatal("Was not able to create resource")
+		return err
+	}
+
+	return nil
+}
+
+func createResource(client *http.Client, url string, resource interface{}, reqLimitChan <-chan bool) {
+	defer func() { <-reqLimitChan}()
+
+	err := makePost(client, resource, url)
+
+	if err != nil {
+		log.Fatalf("Failed to create resource, %v\n", err)
+		os.Exit(1)
+	}
+
 }

@@ -11,10 +11,16 @@ import (
 	"encoding/json"
 )
 
-// Create httpclient, service, chan and run CreateServiceWithRoutes with it
-func prepareAndCreateService(url string){
+func getHTTPRequestBundle() (*http.Client, chan bool) {
 	client := &http.Client{Timeout: 1 * time.Second}
 	reqLimitChan := make(chan bool, 5)
+
+	return client, reqLimitChan
+}
+
+// Create httpclient, service, chan and run CreateServiceWithRoutes with it
+func prepareAndCreateService(url string){
+	client, reqLimitChan := getHTTPRequestBundle()
 	reqLimitChan <- true
 
 	createServiceWithRoutes(client, url, TestEmailService, reqLimitChan)
@@ -57,7 +63,7 @@ func TestImportBadRequest(t *testing.T) {
 
 func TestServiceWithRoutesCreated(t *testing.T) {
 	//Create path /services/<service name>/routes
-	routesPathElements := []string{ServicesKey, TestEmailService.Name, RoutesKey}
+	routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
 	routesPath := strings.Join(routesPathElements, "/")
 
 	serviceCreated := false
@@ -68,7 +74,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 
 		// Use path without slash ([1:])
 		switch path := request.URL.Path[1:]; path {
-		case ServicesKey:
+		case ServicesPath:
 			var body ServicePrepared
 			json.NewDecoder(request.Body).Decode(&body)
 
@@ -104,15 +110,51 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 	}
 }
 
+func TestCertificatesCreated(t *testing.T) {
+	certificatesCreated := false
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+
+		// Use path without slash ([1:])
+		switch path := request.URL.Path[1:]; path {
+		case CertificatesPath:
+			var body CertificatePrepared
+			json.NewDecoder(request.Body).Decode(&body)
+
+			if body.Cert != TestCertificate.Cert {
+				t.Error("Certificate name is not correct")
+			}
+
+			certificatesCreated = true
+		}
+
+	}))
+	defer ts.Close()
+
+	client, _ := getHTTPRequestBundle()
+	config := make(map[string][]interface{})
+
+	config[CertificatesPath] = []interface{}{
+		map[string]string{"cert": TestCertificate.Cert},
+	}
+
+	createEntries(client, ts.URL, config)
+
+	if !certificatesCreated {
+		t.Error("Certificate was not created")
+	}
+}
+
 func TestServiceCreatedRoutesFailed(t *testing.T) {
 	if os.Getenv("CHECK_EXIT") == "1" {
-		routesPathElements := []string{ServicesKey, TestEmailService.Name, RoutesKey}
+		routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
 		routesPath := strings.Join(routesPathElements, "/")
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			// Use path without slash ([1:])
 			switch path := request.URL.Path[1:]; path {
-			case ServicesKey:
+			case ServicesPath:
 				var body ServicePrepared
 				json.NewDecoder(request.Body).Decode(&body)
 
