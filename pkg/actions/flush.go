@@ -46,7 +46,7 @@ func flushAll(adminURL string) {
 func flushResources(client *http.Client, url string, config map[string]Data) {
 	// Firstly we need delete routes and only then services,
 	// as routes are nested resources of services
-	for _, resourceType := range []string{RoutesKey, ServicesKey} {
+	for _, resourceType := range Apis {
 		// In order to not overload the kong, limit concurrent post requests to 10
 		reqLimitChan := make(chan bool, 10)
 

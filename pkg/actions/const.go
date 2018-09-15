@@ -6,16 +6,35 @@ const Timeout = 10
 // DefaultURL keeps url when kong api is accessed with port forwarding (as mentioned in readme)
 const DefaultURL = "http://localhost:8001"
 
-// ServicesKey has Kong admin services path
-const ServicesKey = "services"
+// ServicesPath has Kong admin services path
+const ServicesPath = "services"
 
-// RoutesKey has Kong admin routes path
-const RoutesKey = "routes"
+// RoutesPath has Kong admin routes path
+const RoutesPath = "routes"
 
-// Apis - list of apis for import/export
-var Apis = []string{ServicesKey, RoutesKey}
+// CertificatesPath has Kong admin certificates path
+const CertificatesPath = "certificates"
 
-// Service - for obtaining data from the server
+// Resource is a representation of corresponding type object and path in Kong
+type Resource struct {
+	Path   string
+	Struct interface{}
+}
+
+// Apis - list of apis for import/export with corresponding structure types for parsing values
+// Be aware it should be in the same order as it is going to be deleted, e.g. firstly we delete
+// routes and then services as route has service foreign key
+var Apis = []string{RoutesPath, ServicesPath, CertificatesPath}
+
+// ResourceBundles is a slice of elements with resource path and corresponding struct type
+// in order to store elements in config while exporting using a loop, without duplicating a code.
+// Services and routes are not here as they handled separately in export procedure.
+var ResourceBundles  = []Resource{
+	{CertificatesPath, &CertificatePrepared{}},
+}
+
+
+// Service - for obtaining services from the server
 // for importing configuration every time so name is enough for identifying it
 type Service struct {
 	Id string `mapstructure:"id"`
@@ -43,7 +62,7 @@ type ServicePrepared struct {
 	Routes []RoutePrepared `json:"routes,omitempty"`
 }
 
-// Route - for obtaining data from the server
+// Route - for obtaining routes from the server
 type Route struct {
 	Paths []string `mapstructure:"paths"`
 	Service Service `mapstructure:"service"`
@@ -64,6 +83,13 @@ type RoutePrepared struct {
 	Hosts []string `json:"hosts" mapstructure:"hosts"`
 	Protocols []string `json:"protocols" mapstructure:"protocols"`
 	Methods []string `json:"methods" mapstructure:"methods"`
+}
+
+// CertificatePrepared - for obtaining certificates from the server
+type CertificatePrepared struct {
+	Cert string `json:"cert" mapstructure:"cert"`
+	Key string `json:"key" mapstructure:"key"`
+	Snis []string `json:"snis" mapstructure:"snis"`
 }
 
 // ResourceInstance can be both service or route

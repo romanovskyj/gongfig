@@ -12,3 +12,9 @@ var TestEmailService = ServicePrepared{
 		},
 	},
 }
+
+var TestCertificate = CertificatePrepared{
+	"--certificate--",
+	"--key--",
+	[]string{"domain.tld"},
+}

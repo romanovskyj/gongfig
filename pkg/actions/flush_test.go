@@ -12,29 +12,36 @@ import (
 func TestConfigFlushed(t *testing.T) {
 	serviceDeleted := false
 	routeDeleted := false
+	certificateDeleted := false
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch path := request.URL.Path[1:]; path {
 
-		case ServicesKey:
+		case ServicesPath:
 			w.WriteHeader(http.StatusOK)
-
 			io.WriteString(w, `{"data": [{"id": "1"}]}`)
 
-		case RoutesKey:
+		case RoutesPath:
 			w.WriteHeader(http.StatusOK)
-
 			io.WriteString(w, `{"data": [{"id": "2"}]}`)
+
+		case CertificatesPath:
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, `{"data": [{"id": "3"}]}`)
 
 		case "services/1":
 			w.WriteHeader(http.StatusNoContent)
 			serviceDeleted = true
 
-			case "routes/2":
+		case "routes/2":
 			w.WriteHeader(http.StatusNoContent)
 			routeDeleted = true
+
+		case "certificates/3":
+			w.WriteHeader(http.StatusNoContent)
+			certificateDeleted = true
 		}
 	}))
 
@@ -45,9 +52,11 @@ func TestConfigFlushed(t *testing.T) {
 	if !serviceDeleted {
 		t.Error("Service was not deleted")
 	}
-
 	if !routeDeleted {
 		t.Error("Route was not deleted")
+	}
+	if !certificateDeleted {
+		t.Error("Certificate was not deleted")
 	}
 }
 
