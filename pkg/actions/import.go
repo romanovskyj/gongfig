@@ -89,7 +89,7 @@ func Import(adminURL string, filePath string) {
 	configFile, err := os.OpenFile(filePath, os.O_RDONLY,0444)
 
 	if err != nil {
-		log.Fatal("Failed to read config file. ", err.Error())
+		log.Fatalf("Failed to read config file. %v\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -97,7 +97,7 @@ func Import(adminURL string, filePath string) {
 	var configMap = make(map[string][]interface{})
 
 	if err :=  jsonParser.Decode(&configMap); err != nil {
-		log.Fatal("Failed to parse json file. %v\n", err)
+		log.Fatalf("Failed to parse json file. %v\n", err)
 		os.Exit(1)
 	}
 
