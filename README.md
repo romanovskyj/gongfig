@@ -4,7 +4,9 @@
 
 Import and export [Kong](https://konghq.com/) configuration tool written in Go
 
-Current version supports config import and export for services, routes and certificates resources. It also supports flushing specified kong resources by one click.
+Current version supports config import and export for services, routes, snis, consumers and certificates resources. It also supports flushing specified kong resources by one click.
+
+Support of plugins, targets, upstreams will come soon.
 
 ## Install
 `go get "github.com/romanovskyj/gongfig"`
@@ -14,9 +16,9 @@ Current version supports config import and export for services, routes and certi
 
 #### Commands
 ```
-export - Dump kong services, routes, certificates write it to the config file
-import - Create corresponding kong services, routes, certificates based on provided config file
-flush - Delete all services, routes and certificates from kong
+export - Dump kong resources write it to the config file
+import - Create corresponding kong resources based on provided config file
+flush - Delete all resources from kong
 help, h - Shows a list of commands or help for one command
 ```
 
