@@ -9,6 +9,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"sort"
+	"github.com/jinzhu/copier"
 )
 
 // resourceAnswer contains resource name and its configuration so
@@ -73,7 +74,11 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 		var collection []interface{}
 		for _, item := range config[resourceBundle.Path] {
 			mapstructure.Decode(item, &resourceBundle.Struct)
-			collection = append(collection, resourceBundle.Struct)
+
+			var resource interface{}
+			copier.Copy(&resource, resourceBundle.Struct)
+
+			collection = append(collection, resource)
 		}
 
 		preparedConfig[resourceBundle.Path] = collection

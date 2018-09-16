@@ -8,9 +8,29 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"fmt"
 )
 
-func TestGetPreparedConfig(t *testing.T) {
+func getTestServer(resourcePath, body string) *httptest.Server {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch path := request.URL.Path[1:]; path {
+		case resourcePath:
+			w.WriteHeader(http.StatusOK)
+
+			io.WriteString(w, body)
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, `{"data": []}`)
+		}
+	}))
+
+	return ts
+}
+
+func TestGetServicesAndRoutesPreparedConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -54,25 +74,13 @@ func TestGetPreparedConfig(t *testing.T) {
 	}
 }
 
-// Test resources export that is handled through ResourceBundle slice
-func TestResourceBundlesPreparedConfig(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+func TestGetCertificatesPreparedConfig(t *testing.T) {
+	answerBody := `{"data": [
+		{"id": "1", "snis": ["domain.tld"]},
+		{"id": "2"}
+	]}`
 
-		switch path := request.URL.Path[1:]; path {
-		case CertificatesPath:
-			w.WriteHeader(http.StatusOK)
-
-			io.WriteString(w, `{"data": [
-				{"id": "1", "snis": ["domain.tld"]},
-				{"id": "2"}
-			]}`)
-
-		default:
-			w.WriteHeader(http.StatusOK)
-			io.WriteString(w, `{"data": []}`)
-		}
-	}))
+	ts := getTestServer(CertificatesPath, answerBody)
 	defer ts.Close()
 
 	preparedConfig := getPreparedConfig(ts.URL)
@@ -83,8 +91,36 @@ func TestResourceBundlesPreparedConfig(t *testing.T) {
 		t.Fatalf("2 certificates should be exported")
 	}
 
-	if len(certificates.Index(0).Interface().(*CertificatePrepared).Snis) != 1 {
+	if len(certificates.Index(0).Interface().(CertificatePrepared).Snis) != 1 {
 		t.Fatalf("Exported certificate should have 1 sni")
+	}
+}
+
+func TestGetConsumersPreparedConfig(t *testing.T) {
+	consumer1Username := "john"
+	consumer1CustomId := "1"
+
+	consumer2Username := "alex"
+	consumer2CustomId := "2"
+
+	answerBody := fmt.Sprintf(`{"data": [
+		{"id": "1", "username": "%s", "created_at": 1422386534, "customId": "%s"},
+		{"id": "2", "username": "%s", "created_at": 1422386534, "custom_id": "%s"}
+	]}`, consumer1Username, consumer1CustomId, consumer2Username, consumer2CustomId)
+
+	ts := getTestServer(ConsumersPath, answerBody)
+	defer ts.Close()
+
+	preparedConfig := getPreparedConfig(ts.URL)
+
+	consumers := reflect.ValueOf(preparedConfig[ConsumersPath])
+
+	if consumers.Len() != 2 {
+		t.Fatalf("2 consumers should be exported")
+	}
+
+	if consumers.Index(0).Interface().(ConsumerPrepared).Username != consumer1Username {
+		t.Fatalf("First consumer should have name john")
 	}
 }
 
