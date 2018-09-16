@@ -15,6 +15,9 @@ const RoutesPath = "routes"
 // CertificatesPath has Kong admin certificates path
 const CertificatesPath = "certificates"
 
+// ConsumersPath has Kong admin consumers path
+const ConsumersPath = "consumers"
+
 // Resource is a representation of corresponding type object and path in Kong
 type Resource struct {
 	Path   string
@@ -24,13 +27,14 @@ type Resource struct {
 // Apis - list of apis for import/export with corresponding structure types for parsing values
 // Be aware it should be in the same order as it is going to be deleted, e.g. firstly we delete
 // routes and then services as route has service foreign key
-var Apis = []string{RoutesPath, ServicesPath, CertificatesPath}
+var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath}
 
 // ResourceBundles is a slice of elements with resource path and corresponding struct type
 // in order to store elements in config while exporting using a loop, without duplicating a code.
 // Services and routes are not here as they handled separately in export procedure.
 var ResourceBundles  = []Resource{
 	{CertificatesPath, &CertificatePrepared{}},
+	{ConsumersPath, &ConsumerPrepared{}},
 }
 
 
@@ -90,6 +94,12 @@ type CertificatePrepared struct {
 	Cert string `json:"cert" mapstructure:"cert"`
 	Key string `json:"key" mapstructure:"key"`
 	Snis []string `json:"snis" mapstructure:"snis"`
+}
+
+// ConsumerPrepared - for obtaining consumers from the server
+type ConsumerPrepared struct {
+	CustomId string `json:"custom_id" mapstructure:"custom_id"`
+	Username string `json:"username" mapstructure:"username"`
 }
 
 // ResourceInstance can be both service or route
