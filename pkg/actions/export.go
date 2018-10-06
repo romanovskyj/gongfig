@@ -29,7 +29,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	for _, item := range config[ServicesPath] {
 		var service Service
 		mapstructure.Decode(item, &service)
-		serviceMap[service.Id] = &service
+		serviceMap[service.InternalId] = &service
 	}
 
 	// Add routes to services as nested files so futher it will be written to a file
@@ -37,18 +37,23 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 		var route Route
 		mapstructure.Decode(item, &route)
 
-		var routePrepared RoutePrepared
+		var routePrepared Route
 		mapstructure.Decode(item, &routePrepared)
 
-		serviceMap[route.Service.Id].Routes = append(serviceMap[route.Service.Id].Routes, routePrepared)
+		// Wipe service field as route located already inside of this service (nested)
+		// so no need to duplicate it
+		routePrepared.Service = nil
+
+		serviceMap[route.Service.InternalId].Routes = append(serviceMap[route.Service.InternalId].Routes, routePrepared)
 	}
 
-	var services []ServicePrepared
+	var services []Service
 
 	// Rework serviceMap to a slice for writing it to the config file
 	// as service entity already has an id field and it does not need to duplicate it
 	for _, service := range serviceMap {
-		servicePrepared := ServicePrepared{
+		Service := Service{
+			service.InternalId,
 			service.Name,
 			service.Host,
 			service.Path,
@@ -60,7 +65,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 			service.Routes,
 		}
 
-		services = append(services, servicePrepared)
+		services = append(services, Service)
 	}
 
 	//Sort services by name
@@ -70,7 +75,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 
 	preparedConfig[ServicesPath] = services
 
-	for _, resourceBundle := range ResourceBundles {
+	for _, resourceBundle := range ExportResourceBundles {
 		var collection []interface{}
 		for _, item := range config[resourceBundle.Path] {
 			mapstructure.Decode(item, &resourceBundle.Struct)

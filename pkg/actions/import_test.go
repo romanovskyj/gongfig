@@ -75,7 +75,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 		// Use path without slash ([1:])
 		switch path := request.URL.Path[1:]; path {
 		case ServicesPath:
-			var body ServicePrepared
+			var body Service
 			json.NewDecoder(request.Body).Decode(&body)
 
 			if body.Name != TestEmailService.Name {
@@ -85,7 +85,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 			serviceCreated = true
 
 		case routesPath:
-			var body RoutePrepared
+			var body Route
 			json.NewDecoder(request.Body).Decode(&body)
 
 			if body.Paths[0] != TestEmailService.Routes[0].Paths[0] {
@@ -119,7 +119,7 @@ func TestCertificatesCreated(t *testing.T) {
 		// Use path without slash ([1:])
 		switch path := request.URL.Path[1:]; path {
 		case CertificatesPath:
-			var body CertificatePrepared
+			var body Certificate
 			json.NewDecoder(request.Body).Decode(&body)
 
 			if body.Cert != TestCertificate.Cert {
@@ -155,7 +155,7 @@ func TestServiceCreatedRoutesFailed(t *testing.T) {
 			// Use path without slash ([1:])
 			switch path := request.URL.Path[1:]; path {
 			case ServicesPath:
-				var body ServicePrepared
+				var body Service
 				json.NewDecoder(request.Body).Decode(&body)
 
 				if body.Name != TestEmailService.Name {

@@ -22,13 +22,15 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		reqLimitChan <- true
 
 		// Convert item to service object for further creating it at Kong
-		var service ServicePrepared
+		var service Service
 		mapstructure.Decode(item, &service)
 
 		go createServiceWithRoutes(client, adminURL, service, reqLimitChan)
 	}
 
-	for _, resourceBundle := range ResourceBundles {
+	// create additional structures without internalId here
+	// do import of certificates, consumers, upstreams
+	for _, resourceBundle := range ImportResourceBundles {
 		url := getFullPath(adminURL, resourceBundle.Path)
 
 		for _, item := range configMap[resourceBundle.Path] {
@@ -44,7 +46,7 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 	}
 }
 
-func createServiceWithRoutes(client *http.Client, url string, service ServicePrepared, reqLimitChan <-chan bool) {
+func createServiceWithRoutes(client *http.Client, url string, service Service, reqLimitChan <-chan bool) {
 	defer func() { <-reqLimitChan}()
 
 	// Get path to the services collection
@@ -53,6 +55,9 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 	// Clear routes field as it is created in separate request
 	routes := service.Routes
 	service.Routes = nil
+
+	//Clear id as it is for internal purposes
+	service.InternalId = ""
 
 	body := new(bytes.Buffer)
 	json.NewEncoder(body).Encode(service)
@@ -72,6 +77,9 @@ func createServiceWithRoutes(client *http.Client, url string, service ServicePre
 
 	// Create routes one by one
 	for _, route := range routes {
+		//Clear id as it is for internal purposes
+		route.InternalId = ""
+
 		err := makePost(client, route, routesURL)
 
 		if err != nil {
