@@ -1,10 +1,10 @@
 package actions
 
-var TestEmailService = ServicePrepared{
+var TestEmailService = Service{
 	Name: "email-service",
 	Host: "email.tld",
 	Path: "/api/v1",
-	Routes: []RoutePrepared{
+	Routes: []Route{
 		{
 			Paths: []string{
 				"/rest/emails",
@@ -13,7 +13,7 @@ var TestEmailService = ServicePrepared{
 	},
 }
 
-var TestCertificate = CertificatePrepared{
+var TestCertificate = Certificate{
 	"--certificate--",
 	"--key--",
 	[]string{"domain.tld"},

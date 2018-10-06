@@ -59,7 +59,7 @@ func TestGetServicesAndRoutesPreparedConfig(t *testing.T) {
 	defer ts.Close()
 
 	preparedConfig := getPreparedConfig(ts.URL)
-	services := preparedConfig[ServicesPath].([]ServicePrepared)
+	services := preparedConfig[ServicesPath].([]Service)
 
 	if len(services) != 1 {
 		t.Fatalf("1 service should be exported")
@@ -91,7 +91,7 @@ func TestGetCertificatesPreparedConfig(t *testing.T) {
 		t.Fatalf("2 certificates should be exported")
 	}
 
-	if len(certificates.Index(0).Interface().(CertificatePrepared).Snis) != 1 {
+	if len(certificates.Index(0).Interface().(Certificate).Snis) != 1 {
 		t.Fatalf("Exported certificate should have 1 sni")
 	}
 }
@@ -119,7 +119,7 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 		t.Fatalf("2 consumers should be exported")
 	}
 
-	if consumers.Index(0).Interface().(ConsumerPrepared).Username != consumer1Username {
+	if consumers.Index(0).Interface().(Consumer).Username != consumer1Username {
 		t.Fatalf("First consumer should have name john")
 	}
 }
