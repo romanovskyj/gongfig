@@ -16,3 +16,9 @@ func runExit(testName string) error {
 
 	return err
 }
+
+func getRoutesUrl() string {
+	//Create path /services/<service name>/routes
+	routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
+	return strings.Join(routesPathElements, "/")
+}

@@ -10,11 +10,27 @@ import (
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"strings"
+	"sync"
 )
+
+type ConcurrentStringMap struct {
+	sync.Mutex
+	store map[string]string
+}
+
+func (concurrentStringMap *ConcurrentStringMap) Add(key, value string) {
+	concurrentStringMap.Lock()
+	defer concurrentStringMap.Unlock()
+
+	concurrentStringMap.store[key] = value
+}
 
 func createEntries(client *http.Client, adminURL string, configMap map[string][]interface{}) {
 	// In order to not overload the server, limit concurrent post requests to 10
 	reqLimitChan := make(chan bool, 10)
+
+	// Map local resource ids with newly created
+	concurrentStringMap := ConcurrentStringMap{store: make(map[string]string)}
 
 	// Create services and routes in separate cycle as they depend on each other
 	// and services should be created before routes
@@ -24,68 +40,124 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		// Convert item to service object for further creating it at Kong
 		var service Service
 		mapstructure.Decode(item, &service)
+		connectionBundle := ConnectionBundle{client, adminURL, reqLimitChan}
 
-		go createServiceWithRoutes(client, adminURL, service, reqLimitChan)
+		go createServiceWithRoutes(&connectionBundle, service, &concurrentStringMap)
 	}
 
-	// create additional structures without internalId here
+	// localResource is needed for obtaining id of newly created resource in order to map it
+	// with local ids and keep relations during import
+	var localResource LocalResource
+
+	// create additional structures without Id here
 	// do import of certificates, consumers, upstreams
 	for _, resourceBundle := range ImportResourceBundles {
 		url := getFullPath(adminURL, resourceBundle.Path)
 
 		for _, item := range configMap[resourceBundle.Path] {
 			reqLimitChan <- true
+
+			mapstructure.Decode(item, &localResource)
+
 			mapstructure.Decode(item, &resourceBundle.Struct)
-			go createResource(client, url, resourceBundle.Struct, reqLimitChan)
+
+			go addResource(
+				&ConnectionBundle{client, url, reqLimitChan},
+				resourceBundle.Struct, localResource.Id, &concurrentStringMap)
 		}
 	}
 
-	//Be aware all left requests are finished
+	// Be aware all left requests are finished prior creatin of depending resources
 	for i := 0; i < cap(reqLimitChan); i++ {
 		reqLimitChan <- true
 	}
+
+	// Clean channel for further creation
+	for i := 0; i < cap(reqLimitChan); i++ {
+		<- reqLimitChan
+	}
+
+	pluginsURL := getFullPath(adminURL, PluginsPath)
+
+	//Create plugins
+	for _, item := range configMap[PluginsPath] {
+		reqLimitChan <- true
+
+		var plugin Plugin
+		mapstructure.Decode(item, &plugin)
+
+		if plugin.ServiceId != "" {
+			plugin.ServiceId = concurrentStringMap.store[plugin.ServiceId]
+		}
+
+		if plugin.RouteId != "" {
+			plugin.RouteId = concurrentStringMap.store[plugin.RouteId]
+		}
+
+		if plugin.ConsumerId != "" {
+			plugin.ConsumerId = concurrentStringMap.store[plugin.ConsumerId]
+		}
+
+		mapstructure.Decode(item, &localResource)
+
+		go addResource(
+			&ConnectionBundle{client, pluginsURL, reqLimitChan},
+			&plugin, localResource.Id, &concurrentStringMap)
+	}
+
+	// Be aware all requests are finished prior to program exit
+	for i := 0; i < cap(reqLimitChan); i++ {
+		reqLimitChan <- true
+	}
+
 }
 
-func createServiceWithRoutes(client *http.Client, url string, service Service, reqLimitChan <-chan bool) {
-	defer func() { <-reqLimitChan}()
+func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, idMap *ConcurrentStringMap) {
+	defer func() { <-requestBundle.ReqLimitChan}()
 
 	// Get path to the services collection
-	servicesURL := getFullPath(url, ServicesPath)
+	servicesURL := getFullPath(requestBundle.Url, ServicesPath)
 
 	// Clear routes field as it is created in separate request
 	routes := service.Routes
 	service.Routes = nil
 
-	//Clear id as it is for internal purposes
-	service.InternalId = ""
+	// Record and clear id as it is for internal purposes
+	id := service.Id
+	service.Id = ""
 
 	body := new(bytes.Buffer)
 	json.NewEncoder(body).Encode(service)
 
 	// Create services first, as routes are nested resources
-	err := makePost(client, service, servicesURL)
+	serviceExternalId, err := requestNewResource(requestBundle.Client, service, servicesURL)
 
 	if err != nil {
 		log.Fatalf("Failed to create service, %v\n", err)
 		os.Exit(1)
 	}
 
+	idMap.Add(id, serviceExternalId)
+
 	// Compose path to routes
 	routesPathElements := []string{ServicesPath, service.Name, RoutesPath}
 	routesPath := strings.Join(routesPathElements, "/")
-	routesURL := getFullPath(url, routesPath)
+	routesURL := getFullPath(requestBundle.Url, routesPath)
 
 	// Create routes one by one
 	for _, route := range routes {
-		//Clear id as it is for internal purposes
-		route.InternalId = ""
+		// Record and clear id as it is for internal purposes
+		id := route.Id
+		route.Id = ""
 
-		err := makePost(client, route, routesURL)
+		routeExternalId, err := requestNewResource(requestBundle.Client, route, routesURL)
 
 		if err != nil {
 			log.Fatalf("Failed to create route, %v\n", err)
 			os.Exit(1)
 		}
+
+		idMap.Add(id, routeExternalId)
 	}
 
 }

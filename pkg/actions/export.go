@@ -29,7 +29,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	for _, item := range config[ServicesPath] {
 		var service Service
 		mapstructure.Decode(item, &service)
-		serviceMap[service.InternalId] = &service
+		serviceMap[service.Id] = &service
 	}
 
 	// Add routes to services as nested files so futher it will be written to a file
@@ -44,7 +44,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 		// so no need to duplicate it
 		routePrepared.Service = nil
 
-		serviceMap[route.Service.InternalId].Routes = append(serviceMap[route.Service.InternalId].Routes, routePrepared)
+		serviceMap[route.Service.Id].Routes = append(serviceMap[route.Service.Id].Routes, routePrepared)
 	}
 
 	var services []Service
@@ -53,7 +53,7 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 	// as service entity already has an id field and it does not need to duplicate it
 	for _, service := range serviceMap {
 		Service := Service{
-			service.InternalId,
+			service.Id,
 			service.Name,
 			service.Host,
 			service.Path,

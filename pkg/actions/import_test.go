@@ -9,26 +9,28 @@ import (
 	"strings"
 	"net/http/httptest"
 	"encoding/json"
+	"io"
+	"fmt"
 )
 
-func getHTTPRequestBundle() (*http.Client, chan bool) {
+func getHTTPRequestBundle(url string) *ConnectionBundle {
 	client := &http.Client{Timeout: 1 * time.Second}
 	reqLimitChan := make(chan bool, 5)
 
-	return client, reqLimitChan
+	return &ConnectionBundle{client, url,reqLimitChan}
 }
 
 // Create httpclient, service, chan and run CreateServiceWithRoutes with it
-func prepareAndCreateService(url string){
-	client, reqLimitChan := getHTTPRequestBundle()
-	reqLimitChan <- true
+func prepareAndCreateService(url string, concurrentStringMap *ConcurrentStringMap){
+	connectionBundle := getHTTPRequestBundle(url)
+	connectionBundle.ReqLimitChan <- true
 
-	createServiceWithRoutes(client, url, TestEmailService, reqLimitChan)
+	createServiceWithRoutes(connectionBundle, TestEmailService, concurrentStringMap)
 }
 
 func TestImportCannotConnect(t *testing.T) {
 	if os.Getenv("CHECK_EXIT") == "1" {
-		prepareAndCreateService(DefaultURL)
+		prepareAndCreateService(DefaultURL, &ConcurrentStringMap{store: make(map[string]string)})
 	}
 
 	err := runExit("TestImportCannotConnect")
@@ -48,7 +50,7 @@ func TestImportBadRequest(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		prepareAndCreateService(ts.URL)
+		prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
 	}
 
 	err := runExit("TestImportBadRequest")
@@ -62,9 +64,7 @@ func TestImportBadRequest(t *testing.T) {
 }
 
 func TestServiceWithRoutesCreated(t *testing.T) {
-	//Create path /services/<service name>/routes
-	routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
-	routesPath := strings.Join(routesPathElements, "/")
+	routesPath := getRoutesUrl()
 
 	serviceCreated := false
 	routeCreated := false
@@ -99,7 +99,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 
 	defer ts.Close()
 
-	prepareAndCreateService(ts.URL)
+	prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
 
 	if !serviceCreated {
 		t.Error("Service was not created")
@@ -132,18 +132,130 @@ func TestCertificatesCreated(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client, _ := getHTTPRequestBundle()
+	connectionBundle := getHTTPRequestBundle(ts.URL)
 	config := make(map[string][]interface{})
 
 	config[CertificatesPath] = []interface{}{
 		map[string]string{"cert": TestCertificate.Cert},
 	}
 
-	createEntries(client, ts.URL, config)
+	createEntries(connectionBundle.Client, ts.URL, config)
 
 	if !certificatesCreated {
 		t.Error("Certificate was not created")
 	}
+}
+
+func TestPluginCreated(t *testing.T) {
+	pluginCreated := false
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+
+		// Use path without slash ([1:])
+		switch path := request.URL.Path[1:]; path {
+		case PluginsPath:
+			var body Plugin
+			json.NewDecoder(request.Body).Decode(&body)
+
+			if body.Name != TestPlugin.Name {
+				t.Error("Plugin name is not correct")
+			}
+
+			pluginCreated = true
+		}
+
+	}))
+	defer ts.Close()
+
+	connectionBundle := getHTTPRequestBundle(ts.URL)
+	config := make(map[string][]interface{})
+
+	config[PluginsPath] = []interface{}{
+		map[string]string{"name": TestPlugin.Name},
+	}
+
+	createEntries(connectionBundle.Client, ts.URL, config)
+
+	if !pluginCreated {
+		t.Error("Plugin was not created")
+	}
+}
+
+func TestPluginCreatedForCorrespondingService(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+
+		serviceExternalId := "service1"
+
+		// Use path without slash ([1:])
+		switch path := request.URL.Path[1:]; path {
+		case ServicesPath:
+			body := fmt.Sprintf(`{"id": "%s"}`, serviceExternalId)
+			io.WriteString(w, body)
+		case PluginsPath:
+			var body Plugin
+			json.NewDecoder(request.Body).Decode(&body)
+
+			if body.ServiceId != serviceExternalId {
+				t.Error("Plugin created with wrong service id")
+			}
+		}
+	}))
+	defer ts.Close()
+
+	connectionBundle := getHTTPRequestBundle(ts.URL)
+	config := make(map[string][]interface{})
+
+	serviceLocalId := "local-id"
+	config[ServicesPath] = []interface{}{
+		map[string]string{"id": serviceLocalId, "name": "test-service"},
+	}
+	config[PluginsPath] = []interface{}{
+		map[string]string{"name": "test-plugin", "service_id": serviceLocalId},
+	}
+
+	createEntries(connectionBundle.Client, ts.URL, config)
+}
+
+func TestPluginCreatedForCorrespondingRoute(t *testing.T) {
+	routesPath := getRoutesUrl()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+
+		routeExternalId := "route2"
+
+		// Use path without slash ([1:])
+		switch path := request.URL.Path[1:]; path {
+		case ServicesPath:
+			body := `{"id": "service2"}`
+			io.WriteString(w, body)
+		case routesPath:
+			body := fmt.Sprintf(`{"id": "%s"}`, routeExternalId)
+			io.WriteString(w, body)
+		case PluginsPath:
+			var body Plugin
+			json.NewDecoder(request.Body).Decode(&body)
+
+			if body.RouteId != routeExternalId{
+				t.Error("Plugin created with wrong route id")
+			}
+		}
+	}))
+	defer ts.Close()
+
+	connectionBundle := getHTTPRequestBundle(ts.URL)
+	config := make(map[string][]interface{})
+
+	config[ServicesPath] = []interface{}{
+		TestEmailService,
+	}
+	config[PluginsPath] = []interface{}{
+		map[string]string{"name": "test-plugin", "route_id": TestEmailService.Routes[0].Id},
+	}
+
+	createEntries(connectionBundle.Client, ts.URL, config)
 }
 
 func TestServiceCreatedRoutesFailed(t *testing.T) {
@@ -172,7 +284,7 @@ func TestServiceCreatedRoutesFailed(t *testing.T) {
 
 		defer ts.Close()
 
-		prepareAndCreateService(ts.URL)
+		prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
 	}
 
 	err := runExit("TestServiceCreatedRoutesFailed")

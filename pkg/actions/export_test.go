@@ -9,9 +9,14 @@ import (
 	"os/exec"
 	"reflect"
 	"fmt"
+	"errors"
 )
 
-func getTestServer(resourcePath, body string) *httptest.Server {
+func getTestServer(resourcePath, body string) (*httptest.Server, error) {
+	if isJSONString(body) == false {
+		return nil, errors.New("Specifed body does not have json format")
+	}
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -27,7 +32,7 @@ func getTestServer(resourcePath, body string) *httptest.Server {
 		}
 	}))
 
-	return ts
+	return ts, nil
 }
 
 func TestGetServicesAndRoutesPreparedConfig(t *testing.T) {
@@ -80,7 +85,7 @@ func TestGetCertificatesPreparedConfig(t *testing.T) {
 		{"id": "2"}
 	]}`
 
-	ts := getTestServer(CertificatesPath, answerBody)
+	ts, _ := getTestServer(CertificatesPath, answerBody)
 	defer ts.Close()
 
 	preparedConfig := getPreparedConfig(ts.URL)
@@ -108,7 +113,7 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 		{"id": "2", "username": "%s", "created_at": 1422386534, "custom_id": "%s"}
 	]}`, consumer1Username, consumer1CustomId, consumer2Username, consumer2CustomId)
 
-	ts := getTestServer(ConsumersPath, answerBody)
+	ts, _ := getTestServer(ConsumersPath, answerBody)
 	defer ts.Close()
 
 	preparedConfig := getPreparedConfig(ts.URL)
@@ -121,6 +126,33 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 
 	if consumers.Index(0).Interface().(Consumer).Username != consumer1Username {
 		t.Fatalf("First consumer should have name john")
+	}
+}
+
+func TestGetPluginsPreparedConfig(t *testing.T) {
+	answerBody := `{"data": [
+		{
+          "id": "1", 
+          "config": {
+            "key": "value"
+          }
+        },
+		{"id": "2"}
+	]}`
+
+	ts, _ := getTestServer(PluginsPath, answerBody)
+	defer ts.Close()
+
+	preparedConfig := getPreparedConfig(ts.URL)
+
+	plugins := reflect.ValueOf(preparedConfig[PluginsPath])
+
+	if plugins.Len() != 2 {
+		t.Fatalf("2 plugins should be exported")
+	}
+
+	if plugins.Index(0).Interface().(Plugin).Id != "1" {
+		t.Fatalf("Exported plugin should have correct id")
 	}
 }
 
