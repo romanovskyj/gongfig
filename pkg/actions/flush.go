@@ -9,6 +9,7 @@ import (
 	"strings"
 	"log"
 	"time"
+	"encoding/json"
 )
 
 func flushAll(adminURL string) {
@@ -75,10 +76,19 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 				}
 
 				if response.StatusCode != 204 {
-					log.Fatal("Was not able to Delete item ", instance.Id)
-					os.Exit(1)
-				}
+					// Plugin is deleted automatically when it relies
+					// to some service or route id
+					if response.StatusCode == 404 && resourceType == PluginsPath {
+						log.Println("Plugin is already deleted")
+					} else {
+						message := Message{}
+						json.NewDecoder(response.Body).Decode(&message)
+						log.Println(message.Message)
 
+						log.Fatal("Was not able to Delete item ", instance.Id)
+						os.Exit(1)
+					}
+				}
 			}(instance)
 		}
 

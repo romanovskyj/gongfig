@@ -44,34 +44,50 @@ func getResourceList(client *http.Client, writeData chan *resourceAnswer, fullPa
 	writeData <- &resourceAnswer{resource, body.Data}
 }
 
-func makePost(client *http.Client, resource interface{}, url string) error {
+func requestNewResource(client *http.Client, resource interface{}, url string) (string, error) {
 	body := new(bytes.Buffer)
 	json.NewEncoder(body).Encode(resource)
 
 	// Create services first, as routes are nested resources
 	response, err := client.Post(url, "application/json;charset=utf-8", body)
+	defer response.Body.Close()
 
 	if err != nil {
 		log.Fatal("Request to Kong admin failed")
-		return err
+		return "", err
 	}
 
 	if response.StatusCode != 201 {
+		message := Message{}
+		json.NewDecoder(response.Body).Decode(&message)
+
+		log.Println(message.Message)
 		log.Fatal("Was not able to create resource")
-		return err
+		return "", err
 	}
 
-	return nil
+	createdResource := ResourceInstance{}
+
+	json.NewDecoder(response.Body).Decode(&createdResource)
+
+	return createdResource.Id, nil
 }
 
-func createResource(client *http.Client, url string, resource interface{}, reqLimitChan <-chan bool) {
-	defer func() { <-reqLimitChan}()
+func addResource(connectionBundle *ConnectionBundle, resource interface{}, Id string, idMap *ConcurrentStringMap) {
+	defer func() { <-connectionBundle.ReqLimitChan}()
 
-	err := makePost(client, resource, url)
+	id, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.Url)
 
 	if err != nil {
 		log.Fatalf("Failed to create resource, %v\n", err)
 		os.Exit(1)
 	}
+
+	idMap.Add(Id, id)
+}
+
+func isJSONString(str string) bool {
+	var js json.RawMessage
+	return json.Unmarshal([]byte(str), &js) == nil
 
 }
