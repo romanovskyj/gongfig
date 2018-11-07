@@ -23,6 +23,9 @@ const ConsumersPath = "consumers"
 // PluginsPath has Kong admin plugins path
 const PluginsPath = "plugins"
 
+// UpstreamsPath has Kong admin upstreams path
+const UpstreamsPath = "upstreams"
+
 // Resource is a representation of corresponding type object and path in Kong
 type Resource struct {
 	Path   string
@@ -32,7 +35,7 @@ type Resource struct {
 // Apis - list of apis for import/export with corresponding structure types for parsing values
 // Be aware it should be in the same order as it is going to be deleted, e.g. firstly we delete
 // routes and then services as route has service foreign key
-var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath, PluginsPath}
+var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath, PluginsPath, UpstreamsPath}
 
 // ExportResourceBundles is a slice of elements with resource path and corresponding struct type
 // in order to store elements in config while exporting using a loop, without duplicating a code.
@@ -41,12 +44,14 @@ var ExportResourceBundles  = []Resource{
 	{CertificatesPath, &Certificate{}},
 	{ConsumersPath, &Consumer{}},
 	{PluginsPath, &Plugin{}},
+	{UpstreamsPath, &Upstream{}},
 }
 
 // ImportResourceBundles is the same as ExportResourceBundles but for the import
 var ImportResourceBundles = []Resource{
 	{CertificatesPath, &Certificate{}},
 	{ConsumersPath, &Consumer{}},
+	{UpstreamsPath, &Upstream{}},
 }
 
 //Service struct - is used for managing services
@@ -91,7 +96,7 @@ type Consumer struct {
 	Username string   `json:"username,omitempty" mapstructure:"username"`
 }
 
-//Plugin struct - is used for managing plugins
+// Plugin struct - is used for managing plugins
 type Plugin struct {
 	Id string   			      `json:"id,omitempty" mapstructure:"id"`
 	Name string 				  `json:"name" mapstructure:"name"`
@@ -100,6 +105,20 @@ type Plugin struct {
 	ServiceId string              `json:"service_id,omitempty" mapstructure:"service_id"`
 	RouteId string                `json:"route_id,omitempty" mapstructure:"route_id"`
 	ConsumerId string             `json:"consumer_id,omitempty" mapstructure:"consumer_id"`
+}
+
+// Upstream struct is used for managing upstreams
+type Upstream struct {
+	Id string   			      		`json:"id,omitempty" mapstructure:"id"`
+	Name string 				  		`json:"name" mapstructure:"name"`
+	Slots int 				  	  		`json:"slots" mapstructure:"slots"`
+	Healthchecks map[string]interface{} `json:"healthchecks" mapstructure:"healthchecks"`
+	HashOn string `json:"hash_on" mapstructure:"hash_on"`
+	HashOnHeader string `json:"hash_on_header" mapstructure:"hash_on_header"`
+	HashFallback string `json:"hash_fallback" mapstructure:"hash_fallback"`
+	HashFallbackHeader string `json:"hash_fallback_header" mapstructure:"hash_fallback_header"`
+	HashOnCookie string `json:"hash_on_cookie" mapstructure:"hash_on_cookie"`
+	HashOnCookiePath string `json:"hash_on_cookie_path" mapstructure:"hash_on_cookie_path"`
 }
 
 // ResourceInstance can be both service or route
