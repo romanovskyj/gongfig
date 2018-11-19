@@ -5,11 +5,9 @@ import (
 	"log"
 	"encoding/json"
 	"net/http"
-	"bytes"
 	"time"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
-	"strings"
 	"sync"
 )
 
@@ -28,6 +26,7 @@ func (concurrentStringMap *ConcurrentStringMap) Add(key, value string) {
 func createEntries(client *http.Client, adminURL string, configMap map[string][]interface{}) {
 	// In order to not overload the server, limit concurrent post requests to 10
 	reqLimitChan := make(chan bool, 10)
+	servicesConnectionBundle := ConnectionBundle{client, adminURL, reqLimitChan}
 
 	// Map local resource ids with newly created
 	concurrentStringMap := ConcurrentStringMap{store: make(map[string]string)}
@@ -40,19 +39,31 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		// Convert item to service object for further creating it at Kong
 		var service Service
 		mapstructure.Decode(item, &service)
-		connectionBundle := ConnectionBundle{client, adminURL, reqLimitChan}
 
-		go createServiceWithRoutes(&connectionBundle, service, &concurrentStringMap)
+		go createServiceWithRoutes(&servicesConnectionBundle, service, &concurrentStringMap)
 	}
 
 	// localResource is needed for obtaining id of newly created resource in order to map it
 	// with local ids and keep relations during import
 	var localResource LocalResource
 
+	// Create upstreams and targets in separate cycle as they also depend on each other
+	// (as services and routes)
+	upstreamsConnectionBundle := ConnectionBundle{client, adminURL, reqLimitChan}
+
+	for _, item := range configMap[UpstreamsPath] {
+		reqLimitChan <- true
+
+		var upstream Upstream
+		mapstructure.Decode(item, &upstream)
+
+		go createUpstreamsWithTargets(&upstreamsConnectionBundle, upstream)
+	}
+
 	// create additional structures without Id here
-	// do import of certificates, consumers, upstreams
+	// do import of certificates, consumers
 	for _, resourceBundle := range ImportResourceBundles {
-		url := getFullPath(adminURL, resourceBundle.Path)
+		url := getFullPath(adminURL, []string{resourceBundle.Path})
 
 		for _, item := range configMap[resourceBundle.Path] {
 			reqLimitChan <- true
@@ -77,7 +88,7 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		<- reqLimitChan
 	}
 
-	pluginsURL := getFullPath(adminURL, PluginsPath)
+	pluginsURL := getFullPath(adminURL, []string{PluginsPath})
 
 	//Create plugins
 	for _, item := range configMap[PluginsPath] {
@@ -116,7 +127,7 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 	defer func() { <-requestBundle.ReqLimitChan}()
 
 	// Get path to the services collection
-	servicesURL := getFullPath(requestBundle.Url, ServicesPath)
+	servicesURL := getFullPath(requestBundle.URL, []string{ServicesPath})
 
 	// Clear routes field as it is created in separate request
 	routes := service.Routes
@@ -126,8 +137,6 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 	id := service.Id
 	service.Id = ""
 
-	body := new(bytes.Buffer)
-	json.NewEncoder(body).Encode(service)
 
 	// Create services first, as routes are nested resources
 	serviceExternalId, err := requestNewResource(requestBundle.Client, service, servicesURL)
@@ -141,8 +150,7 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 
 	// Compose path to routes
 	routesPathElements := []string{ServicesPath, service.Name, RoutesPath}
-	routesPath := strings.Join(routesPathElements, "/")
-	routesURL := getFullPath(requestBundle.Url, routesPath)
+	routesURL := getFullPath(requestBundle.URL, routesPathElements)
 
 	// Create routes one by one
 	for _, route := range routes {
@@ -158,6 +166,37 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 		}
 
 		idMap.Add(id, routeExternalId)
+	}
+
+}
+
+func createUpstreamsWithTargets(requestBundle *ConnectionBundle, upstream Upstream) {
+	defer func() { <-requestBundle.ReqLimitChan}()
+
+	// Clear routes field as it is created in separate request
+	targets := upstream.Targets
+	upstream.Targets = nil
+
+	// Clear id
+	upstream.Id = ""
+
+	upstreamsURL := getFullPath(requestBundle.URL, []string{UpstreamsPath})
+	_, err := requestNewResource(requestBundle.Client, upstream, upstreamsURL)
+
+	if err != nil {
+		log.Fatalf("Failed to create upstream, %v\n", err)
+		os.Exit(1)
+	}
+
+	targetsURL := getFullPath(requestBundle.URL, []string{UpstreamsPath, upstream.Name, TargetsPath})
+
+	for _, target := range targets {
+		_, err := requestNewResource(requestBundle.Client, target, targetsURL)
+
+		if err != nil {
+			log.Fatalf("Failed to create target, %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 }

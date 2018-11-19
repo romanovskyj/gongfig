@@ -26,6 +26,9 @@ const PluginsPath = "plugins"
 // UpstreamsPath has Kong admin upstreams path
 const UpstreamsPath = "upstreams"
 
+// TargetsPath has Kong admin targets path
+const TargetsPath = "targets"
+
 // Resource is a representation of corresponding type object and path in Kong
 type Resource struct {
 	Path   string
@@ -44,14 +47,12 @@ var ExportResourceBundles  = []Resource{
 	{CertificatesPath, &Certificate{}},
 	{ConsumersPath, &Consumer{}},
 	{PluginsPath, &Plugin{}},
-	{UpstreamsPath, &Upstream{}},
 }
 
 // ImportResourceBundles is the same as ExportResourceBundles but for the import
 var ImportResourceBundles = []Resource{
 	{CertificatesPath, &Certificate{}},
 	{ConsumersPath, &Consumer{}},
-	{UpstreamsPath, &Upstream{}},
 }
 
 //Service struct - is used for managing services
@@ -110,15 +111,22 @@ type Plugin struct {
 // Upstream struct is used for managing upstreams
 type Upstream struct {
 	Id string   			      		`json:"id,omitempty" mapstructure:"id"`
-	Name string 				  		`json:"name" mapstructure:"name"`
-	Slots int 				  	  		`json:"slots" mapstructure:"slots"`
-	Healthchecks map[string]interface{} `json:"healthchecks" mapstructure:"healthchecks"`
-	HashOn string `json:"hash_on" mapstructure:"hash_on"`
-	HashOnHeader string `json:"hash_on_header" mapstructure:"hash_on_header"`
-	HashFallback string `json:"hash_fallback" mapstructure:"hash_fallback"`
-	HashFallbackHeader string `json:"hash_fallback_header" mapstructure:"hash_fallback_header"`
-	HashOnCookie string `json:"hash_on_cookie" mapstructure:"hash_on_cookie"`
-	HashOnCookiePath string `json:"hash_on_cookie_path" mapstructure:"hash_on_cookie_path"`
+	Name string 				  		`json:"name,omitempty" mapstructure:"name"`
+	Slots int 				  	  		`json:"slots,omitempty" mapstructure:"slots"`
+	Healthchecks map[string]interface{} `json:"healthchecks,omitempty" mapstructure:"healthchecks"`
+	HashOn string                       `json:"hash_on,omitempty" mapstructure:"hash_on"`
+	HashOnHeader string                 `json:"hash_on_header,omitempty" mapstructure:"hash_on_header"`
+	HashFallback string                 `json:"hash_fallback,omitempty" mapstructure:"hash_fallback"`
+	HashFallbackHeader string           `json:"hash_fallback_header,omitempty" mapstructure:"hash_fallback_header"`
+	HashOnCookie string                 `json:"hash_on_cookie,omitempty" mapstructure:"hash_on_cookie"`
+	HashOnCookiePath string             `json:"hash_on_cookie_path,omitempty" mapstructure:"hash_on_cookie_path"`
+	Targets []Target                    `json:"targets,omitempty"`
+}
+
+// Target struct is used for managing targets that are nested inside upstreams
+type Target struct {
+	Target string `json:"target"`
+	Weight int `json:"weight"`
 }
 
 // ResourceInstance can be both service or route
@@ -133,12 +141,16 @@ type LocalResource struct {
 	Id string `mapstructure:"id"`
 }
 
+// ConnectionBundle is needed for passing several items related to http request in order to
+// not overload function with huge amount of parameters
 type ConnectionBundle struct {
 	Client *http.Client
-	Url string
+	URL string
 	ReqLimitChan chan bool
 }
 
+// Message is needed for printing error information if request did not pass successfully,
+// e.g "Resource not found"
 type Message struct {
 	Message string
 }

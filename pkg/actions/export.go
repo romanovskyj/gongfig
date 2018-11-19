@@ -20,7 +20,7 @@ type resourceAnswer struct {
 }
 
 // Prepare config for writing: put routes as nested resources of services, omit unnecessary field etc
-func composeConfig(config map[string]Data) map[string]interface{} {
+func composeConfig(config map[string]Data, client *http.Client, url string) map[string]interface{} {
 	preparedConfig := make(map[string]interface{})
 	serviceMap := make(map[string]*Service)
 
@@ -75,6 +75,31 @@ func composeConfig(config map[string]Data) map[string]interface{} {
 
 	preparedConfig[ServicesPath] = services
 
+	// Obtain upstreams separately as it needs to do additional queries
+	// for obtaining nested targets (there is no /targets collection so
+	// only nested handling is possible)
+	var upstream Upstream
+	var upstreams []Upstream
+	var target Target
+
+	for _, item := range config[UpstreamsPath] {
+		mapstructure.Decode(item, &upstream)
+
+		// Compose path to particular target
+		instancePathElements := []string{UpstreamsPath, upstream.Id, TargetsPath}
+		upstreamTargetsURL := getFullPath(url, instancePathElements)
+		targets := getResourceList(client, upstreamTargetsURL)
+
+		for _, item := range targets.Data {
+			mapstructure.Decode(item, &target)
+			upstream.Targets = append(upstream.Targets, target)
+		}
+
+		upstreams = append(upstreams, upstream)
+	}
+
+	preparedConfig[UpstreamsPath] = upstreams
+
 	for _, resourceBundle := range ExportResourceBundles {
 		var collection []interface{}
 		for _, item := range config[resourceBundle.Path] {
@@ -101,9 +126,9 @@ func getPreparedConfig(adminURL string) map[string]interface{} {
 
 	// Collect representation of all resources
 	for _, resource := range Apis {
-		fullPath := getFullPath(adminURL, resource)
+		fullPath := getFullPath(adminURL, []string{resource})
 
-		go getResourceList(client, writeData, fullPath, resource)
+		go getResourceListToChan(client, writeData, fullPath, resource)
 
 	}
 
@@ -123,7 +148,7 @@ func getPreparedConfig(adminURL string) map[string]interface{} {
 		// resourcesNum is 0 means all needed resources are collected
 		// and we can prepare config for writing it to a file
 		if resourcesNum == 0 {
-			preparedConfig = composeConfig(config)
+			preparedConfig = composeConfig(config, client, adminURL)
 			break
 		}
 	}

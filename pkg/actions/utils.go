@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"bytes"
+	"strings"
 )
 
 // Data - general interface for storing json body answers
@@ -19,14 +20,14 @@ type resourceConfig struct {
 
 // Get url and path and return concatenation
 // e.g http://localhost:8001, services will return http://localhost:8001/services
-func getFullPath(adminURL string, path string) string {
+func getFullPath(adminURL string, pathElements []string) string {
 	uri, _ := url.Parse(adminURL)
+	path := strings.Join(pathElements, "/")
 	uri.Path = path
 	return uri.String()
 }
 
-// Get list of resources by http and pass it to the channel where it will handled further
-func getResourceList(client *http.Client, writeData chan *resourceAnswer, fullPath string, resource string) {
+func getResourceList(client *http.Client, fullPath string) resourceConfig {
 	response, err := client.Get(fullPath)
 
 	if err != nil {
@@ -38,6 +39,13 @@ func getResourceList(client *http.Client, writeData chan *resourceAnswer, fullPa
 
 	var body resourceConfig
 	json.NewDecoder(response.Body).Decode(&body)
+
+	return body
+}
+
+// Get list of resources by http and pass it to the channel where it will handled further
+func getResourceListToChan(client *http.Client, writeData chan *resourceAnswer, fullPath string, resource string) {
+	body := getResourceList(client, fullPath)
 
 	// send only data field for writing in order to write { "service": [items...] } instead of
 	// { "service": {"data": [items...] }}
@@ -76,7 +84,7 @@ func requestNewResource(client *http.Client, resource interface{}, url string) (
 func addResource(connectionBundle *ConnectionBundle, resource interface{}, Id string, idMap *ConcurrentStringMap) {
 	defer func() { <-connectionBundle.ReqLimitChan}()
 
-	id, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.Url)
+	id, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.URL)
 
 	if err != nil {
 		log.Fatalf("Failed to create resource, %v\n", err)
