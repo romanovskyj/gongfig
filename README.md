@@ -4,8 +4,6 @@
 
 Import and export [Kong](https://konghq.com/) configuration tool written in Go
 
-Current version supports config import and export for all resources except of upstreams and targets (they are coming soon). It also supports flushing specified kong resources by one click.
-
 ## Install
 `go get "github.com/romanovskyj/gongfig"`
 
