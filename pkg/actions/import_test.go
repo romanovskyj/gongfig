@@ -64,7 +64,7 @@ func TestImportBadRequest(t *testing.T) {
 }
 
 func TestServiceWithRoutesCreated(t *testing.T) {
-	routesPath := getRoutesUrl()
+	routesPath := getRoutesURL()
 
 	serviceCreated := false
 	routeCreated := false
@@ -219,7 +219,7 @@ func TestPluginCreatedForCorrespondingService(t *testing.T) {
 }
 
 func TestPluginCreatedForCorrespondingRoute(t *testing.T) {
-	routesPath := getRoutesUrl()
+	routesPath := getRoutesURL()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.WriteHeader(http.StatusCreated)

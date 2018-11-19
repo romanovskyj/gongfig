@@ -21,9 +21,9 @@ func flushAll(adminURL string) {
 
 	// Collect representation of all resources
 	for _, resource := range Apis {
-		fullPath := getFullPath(adminURL, resource)
+		fullPath := getFullPath(adminURL, []string{resource})
 
-		go getResourceList(client, flushData, fullPath, resource)
+		go getResourceListToChan(client, flushData, fullPath, resource)
 
 	}
 
@@ -64,7 +64,7 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 				// Compose path to routes
 				instancePathElements := []string{resourceType, instance.Id}
 				instancePath := strings.Join(instancePathElements, "/")
-				instanceURL := getFullPath(url, instancePath)
+				instanceURL := getFullPath(url, []string{instancePath})
 
 				request, _ := http.NewRequest(http.MethodDelete, instanceURL, nil)
 
