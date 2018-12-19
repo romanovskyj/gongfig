@@ -143,7 +143,6 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 
 	if err != nil {
 		log.Fatalf("Failed to create service, %v\n", err)
-		os.Exit(1)
 	}
 
 	idMap.Add(id, serviceExternalId)
@@ -161,8 +160,7 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 		routeExternalId, err := requestNewResource(requestBundle.Client, route, routesURL)
 
 		if err != nil {
-			log.Fatalf("Failed to create route, %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Could not create new resource, %v\n", err)
 		}
 
 		idMap.Add(id, routeExternalId)
@@ -184,8 +182,7 @@ func createUpstreamsWithTargets(requestBundle *ConnectionBundle, upstream Upstre
 	_, err := requestNewResource(requestBundle.Client, upstream, upstreamsURL)
 
 	if err != nil {
-		log.Fatalf("Failed to create upstream, %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Could not create new resource, %v\n", err)
 	}
 
 	targetsURL := getFullPath(requestBundle.URL, []string{UpstreamsPath, upstream.Name, TargetsPath})
@@ -195,7 +192,6 @@ func createUpstreamsWithTargets(requestBundle *ConnectionBundle, upstream Upstre
 
 		if err != nil {
 			log.Fatalf("Failed to create target, %v\n", err)
-			os.Exit(1)
 		}
 	}
 
@@ -209,7 +205,6 @@ func Import(adminURL string, filePath string) {
 
 	if err != nil {
 		log.Fatalf("Failed to read config file. %v\n", err.Error())
-		os.Exit(1)
 	}
 
 	jsonParser := json.NewDecoder(configFile)
@@ -217,7 +212,6 @@ func Import(adminURL string, filePath string) {
 
 	if err :=  jsonParser.Decode(&configMap); err != nil {
 		log.Fatalf("Failed to parse json file. %v\n", err)
-		os.Exit(1)
 	}
 
 	createEntries(client, adminURL, configMap)
