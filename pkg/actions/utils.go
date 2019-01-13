@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"log"
 	"encoding/json"
-	"os"
 	"bytes"
 	"strings"
 )
@@ -32,7 +31,6 @@ func getResourceList(client *http.Client, fullPath string) resourceConfig {
 
 	if err != nil {
 		log.Fatal("Request to Kong admin failed")
-		os.Exit(1)
 	}
 
 	defer response.Body.Close()
@@ -88,7 +86,6 @@ func addResource(connectionBundle *ConnectionBundle, resource interface{}, Id st
 
 	if err != nil {
 		log.Fatalf("Failed to create resource, %v\n", err)
-		os.Exit(1)
 	}
 
 	idMap.Add(Id, id)
