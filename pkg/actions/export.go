@@ -19,7 +19,7 @@ type resourceAnswer struct {
 	config Data
 }
 
-// Prepare config for writing: put routes as nested resources of services, omit unnecessary field etc
+// Prepare config for writing: put routes as nested resources of services, omit unnecessary fields etc
 func composeConfig(config map[string]Data, client *http.Client, url string) map[string]interface{} {
 	preparedConfig := make(map[string]interface{})
 	serviceMap := make(map[string]*Service)
@@ -51,21 +51,21 @@ func composeConfig(config map[string]Data, client *http.Client, url string) map[
 
 	// Rework serviceMap to a slice for writing it to the config file
 	// as service entity already has an id field and it does not need to duplicate it
-	for _, service := range serviceMap {
-		Service := Service{
-			service.Id,
-			service.Name,
-			service.Host,
-			service.Path,
-			service.Port,
-			service.Protocol,
-			service.ConnectTimeout,
-			service.ReadTimeout,
-			service.WriteTimeout,
-			service.Routes,
+	for _, item := range serviceMap {
+		service := Service{
+			item.Id,
+			item.Name,
+			item.Host,
+			item.Path,
+			item.Port,
+			item.Protocol,
+			item.ConnectTimeout,
+			item.ReadTimeout,
+			item.WriteTimeout,
+			item.Routes,
 		}
 
-		services = append(services, Service)
+		services = append(services, service)
 	}
 
 	//Sort services by name
@@ -99,6 +99,42 @@ func composeConfig(config map[string]Data, client *http.Client, url string) map[
 	}
 
 	preparedConfig[UpstreamsPath] = upstreams
+
+	// Handle Consumers separately as it needs to match it with key-auth if it exists
+	consumerMap := make(map[string]*Consumer)
+
+	// Create a map of consumers where key is consumer id in order to effectively
+	// search consumers for pasting there corresponding api-keys
+	for _, item := range config[ConsumersPath] {
+		var consumer Consumer
+		mapstructure.Decode(item, &consumer)
+		consumerMap[consumer.Id] = &consumer
+	}
+
+	// Add api-key to consumers if it exists
+	for _, item := range config[KeyAuthsPath] {
+		var keyAuth KeyAuth
+		mapstructure.Decode(item, &keyAuth)
+
+		consumerMap[keyAuth.ConsumerId].Key = keyAuth.Key
+	}
+
+	var consumers []Consumer
+
+	// Rework serviceMap to a slice for writing it to the config file
+	// as consumer entity already has an id field and it does not need to duplicate it
+	for _, item := range consumerMap {
+		consumer := Consumer{
+			item.Id,
+			item.CustomId,
+			item.Username,
+			item.Key,
+		}
+
+		consumers = append(consumers, consumer)
+	}
+
+	preparedConfig[ConsumersPath] = consumers
 
 	for _, resourceBundle := range ExportResourceBundles {
 		var collection []interface{}

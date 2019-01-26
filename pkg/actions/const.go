@@ -20,6 +20,9 @@ const CertificatesPath = "certificates"
 // ConsumersPath has Kong admin consumers path
 const ConsumersPath = "consumers"
 
+// KeyAuthsPath has Kong admin key authentication path
+const KeyAuthsPath = "key-auths"
+
 // PluginsPath has Kong admin plugins path
 const PluginsPath = "plugins"
 
@@ -38,14 +41,13 @@ type Resource struct {
 // Apis - list of apis for import/export with corresponding structure types for parsing values
 // Be aware it should be in the same order as it is going to be deleted, e.g. firstly we delete
 // routes and then services as route has service foreign key
-var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath, PluginsPath, UpstreamsPath}
+var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath, KeyAuthsPath, PluginsPath, UpstreamsPath}
 
 // ExportResourceBundles is a slice of elements with resource path and corresponding struct type
 // in order to store elements in config while exporting using a loop, without duplicating a code.
 // Services and routes are not here as they handled separately in export procedure.
 var ExportResourceBundles  = []Resource{
 	{CertificatesPath, &Certificate{}},
-	{ConsumersPath, &Consumer{}},
 	{PluginsPath, &Plugin{}},
 }
 
@@ -95,6 +97,12 @@ type Consumer struct {
 	Id string         `json:"id,omitempty" mapstructure:"id"`
 	CustomId string   `json:"custom_id,omitempty" mapstructure:"custom_id"`
 	Username string   `json:"username,omitempty" mapstructure:"username"`
+	Key string 		  `json:"key,omitempty" mapstructure:"key"`
+}
+
+type KeyAuth struct {
+	Key string 		  `json:"key,omitempty" mapstructure:"key"`
+	ConsumerId string `json:"consumer_id,omitempty" mapstructure:"consumer_id"`
 }
 
 // Plugin struct - is used for managing plugins
