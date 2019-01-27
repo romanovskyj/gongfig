@@ -43,10 +43,6 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		go createServiceWithRoutes(&servicesConnectionBundle, service, &concurrentStringMap)
 	}
 
-	// localResource is needed for obtaining id of newly created resource in order to map it
-	// with local ids and keep relations during import
-	var localResource LocalResource
-
 	// Create upstreams and targets in separate cycle as they also depend on each other
 	// (as services and routes)
 	upstreamsConnectionBundle := ConnectionBundle{client, adminURL, reqLimitChan}
@@ -60,25 +56,34 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		go createUpstreamsWithTargets(&upstreamsConnectionBundle, upstream)
 	}
 
-	// create additional structures without Id here
-	// do import of certificates, consumers
-	for _, resourceBundle := range ImportResourceBundles {
-		url := getFullPath(adminURL, []string{resourceBundle.Path})
 
-		for _, item := range configMap[resourceBundle.Path] {
-			reqLimitChan <- true
+	url := getFullPath(adminURL, []string{CertificatesPath})
 
-			mapstructure.Decode(item, &localResource)
+	for _, item := range configMap[CertificatesPath] {
+		reqLimitChan <- true
 
-			mapstructure.Decode(item, &resourceBundle.Struct)
+		var certificate Certificate
+		mapstructure.Decode(item, &certificate)
 
-			go addResource(
-				&ConnectionBundle{client, url, reqLimitChan},
-				resourceBundle.Struct, localResource.Id, &concurrentStringMap)
-		}
+		go addResource(
+			&ConnectionBundle{client, url, reqLimitChan},
+			certificate, &concurrentStringMap)
 	}
 
-	// Be aware all left requests are finished prior creatin of depending resources
+	url = getFullPath(adminURL, []string{ConsumersPath})
+
+	for _, item := range configMap[ConsumersPath] {
+		reqLimitChan <- true
+
+		var consumer Consumer
+		mapstructure.Decode(item, &consumer)
+
+		bundle := &ConnectionBundle{client, url, reqLimitChan}
+
+		go createConsumersWithKeyAuths(bundle, consumer, &concurrentStringMap)
+	}
+
+	// Be aware all left requests are finished prior creation of depending resources
 	for i := 0; i < cap(reqLimitChan); i++ {
 		reqLimitChan <- true
 	}
@@ -109,17 +114,22 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 			plugin.ConsumerId = concurrentStringMap.store[plugin.ConsumerId]
 		}
 
-		mapstructure.Decode(item, &localResource)
-
 		go addResource(
 			&ConnectionBundle{client, pluginsURL, reqLimitChan},
-			&plugin, localResource.Id, &concurrentStringMap)
+			&plugin, &concurrentStringMap)
 	}
 
 	// Be aware all requests are finished prior to program exit
 	for i := 0; i < cap(reqLimitChan); i++ {
 		reqLimitChan <- true
 	}
+
+}
+
+func createConsumersWithKeyAuths(requestBundle *ConnectionBundle, consumer Consumer, idMap *ConcurrentStringMap) {
+	addResource(
+		&ConnectionBundle{requestBundle.Client, requestBundle.URL, requestBundle.ReqLimitChan},
+		consumer, idMap)
 
 }
 
