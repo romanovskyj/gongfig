@@ -104,6 +104,7 @@ type Consumer struct {
 	Key string 		  `json:"key,omitempty" mapstructure:"key"`
 }
 
+//KeyAuth - for obtaining consumer KeyAuth
 type KeyAuth struct {
 	Key string 		  `json:"key,omitempty" mapstructure:"key"`
 	ConsumerId string `json:"consumer_id,omitempty" mapstructure:"consumer_id"`

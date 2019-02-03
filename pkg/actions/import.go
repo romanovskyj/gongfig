@@ -11,11 +11,13 @@ import (
 	"sync"
 )
 
+// ConcurrentStringMap - special map for synchronizing localIds with externals
 type ConcurrentStringMap struct {
 	sync.Mutex
 	store map[string]string
 }
 
+// Add - Locking is implemented in order to avoid problems with accessing to ConcurrentStringMap
 func (concurrentStringMap *ConcurrentStringMap) Add(key, value string) {
 	concurrentStringMap.Lock()
 	defer concurrentStringMap.Unlock()
