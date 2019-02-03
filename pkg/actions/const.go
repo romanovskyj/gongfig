@@ -23,6 +23,10 @@ const ConsumersPath = "consumers"
 // KeyAuthsPath has Kong admin key authentication path
 const KeyAuthsPath = "key-auths"
 
+// KeyAuthPath has Kong admin key authentication path nested inside consumer
+const KeyAuthPath = "key-auth"
+
+
 // PluginsPath has Kong admin plugins path
 const PluginsPath = "plugins"
 

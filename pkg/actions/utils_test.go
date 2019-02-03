@@ -22,3 +22,9 @@ func getRoutesURL() string {
 	routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
 	return strings.Join(routesPathElements, "/")
 }
+
+func getConsumerKeyAuthURL(consumerId string) string {
+	//Create path /consumers/<consumer name>/key-auth
+	routesPathElements := []string{ConsumersPath, consumerId, KeyAuthPath}
+	return strings.Join(routesPathElements, "/")
+}

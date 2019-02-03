@@ -71,7 +71,6 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-
 		// Use path without slash ([1:])
 		switch path := request.URL.Path[1:]; path {
 		case ServicesPath:
@@ -295,4 +294,46 @@ func TestServiceCreatedRoutesFailed(t *testing.T) {
 	}
 
 	t.Fatalf("process ran with err %v, want exit status 1", err)
+}
+
+func TestConsumerWithKeyAuthCreated(t *testing.T) {
+	localConsumerId := "consumer1"
+	externalConsumerId := "consumer2"
+	consumerKey := "key1"
+	keyAuthCreated := false
+	consumerKeyAuthURL := getConsumerKeyAuthURL(externalConsumerId)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+
+		// Use path without slash ([1:])
+		switch path := request.URL.Path[1:]; path {
+		case ConsumersPath:
+			body := fmt.Sprintf(`{"id": "%s"}`, externalConsumerId)
+			io.WriteString(w, body)
+		case consumerKeyAuthURL:
+			var body KeyAuth
+			json.NewDecoder(request.Body).Decode(&body)
+
+			if body.Key != consumerKey{
+				t.Error("Key auth created with wrong key")
+			}
+
+			keyAuthCreated = true
+		}
+	}))
+	defer ts.Close()
+
+	connectionBundle := getHTTPRequestBundle(ts.URL)
+	config := make(map[string][]interface{})
+
+	config[ConsumersPath] = []interface{}{
+		map[string]string{"id": localConsumerId, "key": consumerKey},
+	}
+
+	createEntries(connectionBundle.Client, ts.URL, config)
+
+	if !keyAuthCreated {
+		t.Error("KeyAuth was not created")
+	}
 }

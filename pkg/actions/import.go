@@ -67,7 +67,7 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 
 		go addResource(
 			&ConnectionBundle{client, url, reqLimitChan},
-			certificate, &concurrentStringMap)
+			certificate, certificate.Id, &concurrentStringMap)
 	}
 
 	url = getFullPath(adminURL, []string{ConsumersPath})
@@ -116,21 +116,46 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 
 		go addResource(
 			&ConnectionBundle{client, pluginsURL, reqLimitChan},
-			&plugin, &concurrentStringMap)
+			&plugin, plugin.Id, &concurrentStringMap)
 	}
 
 	// Be aware all requests are finished prior to program exit
 	for i := 0; i < cap(reqLimitChan); i++ {
 		reqLimitChan <- true
 	}
-
 }
 
 func createConsumersWithKeyAuths(requestBundle *ConnectionBundle, consumer Consumer, idMap *ConcurrentStringMap) {
-	addResource(
-		&ConnectionBundle{requestBundle.Client, requestBundle.URL, requestBundle.ReqLimitChan},
-		consumer, idMap)
+	defer func() { <-requestBundle.ReqLimitChan}()
 
+	//save id for adding it into idMap but avoid pushing when create consumer
+	id := consumer.Id
+	consumer.Id = ""
+
+	// Store key in separate variable in order to not propagate it in consumer
+	// resource itself
+	key := consumer.Key
+	consumer.Key = ""
+
+	// Firstly create consumer in order to create keyauth at the next step for it
+	consumerExternalId, err := requestNewResource(requestBundle.Client, consumer, requestBundle.URL)
+
+	if err != nil {
+		log.Fatalf("Failed to create consumer, %v\n", err)
+	}
+
+	idMap.Add(id, consumerExternalId)
+
+	if key != "" {
+		url := getFullPath(requestBundle.URL, []string{ConsumersPath, consumerExternalId, KeyAuthPath})
+		keyAuth := KeyAuth{Key: key}
+
+		_, err := requestNewResource(requestBundle.Client, keyAuth, url)
+
+		if err != nil {
+			log.Fatalf("Failed to create key-auth, %v\n", err)
+		}
+	}
 }
 
 func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, idMap *ConcurrentStringMap) {

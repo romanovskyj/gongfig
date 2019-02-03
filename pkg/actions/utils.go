@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"bytes"
 	"strings"
-	"github.com/jinzhu/copier"
 )
 
 // Data - general interface for storing json body answers
@@ -80,11 +79,8 @@ func requestNewResource(client *http.Client, resource interface{}, url string) (
 	return createdResource.Id, nil
 }
 
-func addResource(connectionBundle *ConnectionBundle, resource interface{}, idMap *ConcurrentStringMap) {
+func addResource(connectionBundle *ConnectionBundle, resource interface{}, resourceId string, idMap *ConcurrentStringMap) {
 	defer func() { <-connectionBundle.ReqLimitChan}()
-
-	var localResource LocalResource
-	copier.Copy(&localResource, &resource)
 
 	externalId, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.URL)
 
@@ -92,7 +88,7 @@ func addResource(connectionBundle *ConnectionBundle, resource interface{}, idMap
 		log.Fatalf("Failed to create resource, %v\n", err)
 	}
 
-	idMap.Add(localResource.Id, externalId)
+	idMap.Add(resourceId, externalId)
 }
 
 func isJSONString(str string) bool {
