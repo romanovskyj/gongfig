@@ -42,10 +42,14 @@ type Resource struct {
 	Struct interface{}
 }
 
+// FlushApies does not contain KeyAuthPath as these entries are deleted automatically
+// when corresponding consumer is deleted
+var FlushApis = []string{RoutesPath, ServicesPath, CertificatesPath, PluginsPath, UpstreamsPath, ConsumersPath}
+
 // Apis - list of apis for import/export with corresponding structure types for parsing values
 // Be aware it should be in the same order as it is going to be deleted, e.g. firstly we delete
 // routes and then services as route has service foreign key
-var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath, KeyAuthsPath, PluginsPath, UpstreamsPath}
+var Apis = append(FlushApis, KeyAuthsPath)
 
 // ExportResourceBundles is a slice of elements with resource path and corresponding struct type
 // in order to store elements in config while exporting using a loop, without duplicating a code.
@@ -53,12 +57,6 @@ var Apis = []string{RoutesPath, ServicesPath, CertificatesPath, ConsumersPath, K
 var ExportResourceBundles  = []Resource{
 	{CertificatesPath, &Certificate{}},
 	{PluginsPath, &Plugin{}},
-}
-
-// ImportResourceBundles is the same as ExportResourceBundles but for the import
-var ImportResourceBundles = []Resource{
-	{CertificatesPath, &Certificate{}},
-	{ConsumersPath, &Consumer{}},
 }
 
 //Service struct - is used for managing services
