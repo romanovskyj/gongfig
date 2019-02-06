@@ -11,11 +11,13 @@ import (
 	"sync"
 )
 
+// ConcurrentStringMap - special map for synchronizing localIds with externals
 type ConcurrentStringMap struct {
 	sync.Mutex
 	store map[string]string
 }
 
+// Add - Locking is implemented in order to avoid problems with accessing to ConcurrentStringMap
 func (concurrentStringMap *ConcurrentStringMap) Add(key, value string) {
 	concurrentStringMap.Lock()
 	defer concurrentStringMap.Unlock()
@@ -43,10 +45,6 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		go createServiceWithRoutes(&servicesConnectionBundle, service, &concurrentStringMap)
 	}
 
-	// localResource is needed for obtaining id of newly created resource in order to map it
-	// with local ids and keep relations during import
-	var localResource LocalResource
-
 	// Create upstreams and targets in separate cycle as they also depend on each other
 	// (as services and routes)
 	upstreamsConnectionBundle := ConnectionBundle{client, adminURL, reqLimitChan}
@@ -60,25 +58,34 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		go createUpstreamsWithTargets(&upstreamsConnectionBundle, upstream)
 	}
 
-	// create additional structures without Id here
-	// do import of certificates, consumers
-	for _, resourceBundle := range ImportResourceBundles {
-		url := getFullPath(adminURL, []string{resourceBundle.Path})
 
-		for _, item := range configMap[resourceBundle.Path] {
-			reqLimitChan <- true
+	url := getFullPath(adminURL, []string{CertificatesPath})
 
-			mapstructure.Decode(item, &localResource)
+	for _, item := range configMap[CertificatesPath] {
+		reqLimitChan <- true
 
-			mapstructure.Decode(item, &resourceBundle.Struct)
+		var certificate Certificate
+		mapstructure.Decode(item, &certificate)
 
-			go addResource(
-				&ConnectionBundle{client, url, reqLimitChan},
-				resourceBundle.Struct, localResource.Id, &concurrentStringMap)
-		}
+		go addResource(
+			&ConnectionBundle{client, url, reqLimitChan},
+			certificate, certificate.Id, &concurrentStringMap)
 	}
 
-	// Be aware all left requests are finished prior creatin of depending resources
+	url = getFullPath(adminURL, []string{ConsumersPath})
+
+	for _, item := range configMap[ConsumersPath] {
+		reqLimitChan <- true
+
+		var consumer Consumer
+		mapstructure.Decode(item, &consumer)
+
+		bundle := &ConnectionBundle{client, url, reqLimitChan}
+
+		go createConsumersWithKeyAuths(bundle, consumer, &concurrentStringMap)
+	}
+
+	// Be aware all left requests are finished prior creation of depending resources
 	for i := 0; i < cap(reqLimitChan); i++ {
 		reqLimitChan <- true
 	}
@@ -109,18 +116,48 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 			plugin.ConsumerId = concurrentStringMap.store[plugin.ConsumerId]
 		}
 
-		mapstructure.Decode(item, &localResource)
-
 		go addResource(
 			&ConnectionBundle{client, pluginsURL, reqLimitChan},
-			&plugin, localResource.Id, &concurrentStringMap)
+			&plugin, plugin.Id, &concurrentStringMap)
 	}
 
 	// Be aware all requests are finished prior to program exit
 	for i := 0; i < cap(reqLimitChan); i++ {
 		reqLimitChan <- true
 	}
+}
 
+func createConsumersWithKeyAuths(requestBundle *ConnectionBundle, consumer Consumer, idMap *ConcurrentStringMap) {
+	defer func() { <-requestBundle.ReqLimitChan}()
+
+	//save id for adding it into idMap but avoid pushing when create consumer
+	id := consumer.Id
+	consumer.Id = ""
+
+	// Store key in separate variable in order to not propagate it in consumer
+	// resource itself
+	key := consumer.Key
+	consumer.Key = ""
+
+	// Firstly create consumer in order to create keyauth at the next step for it
+	consumerExternalId, err := requestNewResource(requestBundle.Client, consumer, requestBundle.URL)
+
+	if err != nil {
+		log.Fatalf("Failed to create consumer, %v\n", err)
+	}
+
+	idMap.Add(id, consumerExternalId)
+
+	if key != "" {
+		url := getFullPath(requestBundle.URL, []string{ConsumersPath, consumerExternalId, KeyAuthPath})
+		keyAuth := KeyAuth{Key: key}
+
+		_, err := requestNewResource(requestBundle.Client, keyAuth, url)
+
+		if err != nil {
+			log.Fatalf("Failed to create key-auth, %v\n", err)
+		}
+	}
 }
 
 func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, idMap *ConcurrentStringMap) {

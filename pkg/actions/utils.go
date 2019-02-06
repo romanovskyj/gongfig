@@ -79,16 +79,16 @@ func requestNewResource(client *http.Client, resource interface{}, url string) (
 	return createdResource.Id, nil
 }
 
-func addResource(connectionBundle *ConnectionBundle, resource interface{}, Id string, idMap *ConcurrentStringMap) {
+func addResource(connectionBundle *ConnectionBundle, resource interface{}, resourceId string, idMap *ConcurrentStringMap) {
 	defer func() { <-connectionBundle.ReqLimitChan}()
 
-	id, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.URL)
+	externalId, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.URL)
 
 	if err != nil {
 		log.Fatalf("Failed to create resource, %v\n", err)
 	}
 
-	idMap.Add(Id, id)
+	idMap.Add(resourceId, externalId)
 }
 
 func isJSONString(str string) bool {

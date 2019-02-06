@@ -14,7 +14,7 @@ import (
 
 func getTestServer(resourcePath, body string) (*httptest.Server, error) {
 	if isJSONString(body) == false {
-		return nil, errors.New("Specifed body does not have json format")
+		return nil, errors.New("specifed body does not have json format")
 	}
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
@@ -102,18 +102,42 @@ func TestGetCertificatesPreparedConfig(t *testing.T) {
 }
 
 func TestGetConsumersPreparedConfig(t *testing.T) {
+	consumer1Id := "1"
 	consumer1Username := "john"
 	consumer1CustomId := "1"
+	consumer1Key := "key1"
 
+	consumer2Id := "2"
 	consumer2Username := "alex"
 	consumer2CustomId := "2"
+	consumer2Key := "key2"
 
-	answerBody := fmt.Sprintf(`{"data": [
-		{"id": "1", "username": "%s", "created_at": 1422386534, "customId": "%s"},
-		{"id": "2", "username": "%s", "created_at": 1422386534, "custom_id": "%s"}
-	]}`, consumer1Username, consumer1CustomId, consumer2Username, consumer2CustomId)
+	consumerAnswerBody := fmt.Sprintf(`{"data": [
+		{"id": "%s", "username": "%s", "created_at": 1422386534, "customId": "%s"},
+		{"id": "%s", "username": "%s", "created_at": 1422386534, "custom_id": "%s"}
+	]}`, consumer1Id, consumer1Username, consumer1CustomId,
+		 consumer2Id,consumer2Username, consumer2CustomId)
 
-	ts, _ := getTestServer(ConsumersPath, answerBody)
+	keyAuthAnswerBody := fmt.Sprintf(`{"data": [
+		{"consumer_id": "%s", "key": "%s"},
+		{"consumer_id": "%s", "key": "%s"}
+	]}`, consumer1Id, consumer1Key, consumer2Id, consumer2Key)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch path := request.URL.Path[1:]; path {
+
+		case ConsumersPath:
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, consumerAnswerBody)
+
+		case KeyAuthsPath:
+			w.WriteHeader(http.StatusOK)
+			io.WriteString(w, keyAuthAnswerBody)
+		}
+	}))
+
 	defer ts.Close()
 
 	preparedConfig := getPreparedConfig(ts.URL)
@@ -125,6 +149,10 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 	}
 
 	if consumers.Index(0).Interface().(Consumer).Username != consumer1Username {
+		t.Fatalf("First consumer should have name john")
+	}
+
+	if consumers.Index(0).Interface().(Consumer).Key != consumer1Key {
 		t.Fatalf("First consumer should have name john")
 	}
 }
