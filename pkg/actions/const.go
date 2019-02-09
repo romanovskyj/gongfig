@@ -42,7 +42,7 @@ type Resource struct {
 	Struct interface{}
 }
 
-// FlushApies does not contain KeyAuthPath as these entries are deleted automatically
+// FlushApis does not contain KeyAuthPath as these entries are deleted automatically
 // when corresponding consumer is deleted
 var FlushApis = []string{RoutesPath, ServicesPath, CertificatesPath, PluginsPath, UpstreamsPath, ConsumersPath}
 

@@ -20,7 +20,7 @@ func getTestServer(resourcePath, body string) (*httptest.Server, error) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case resourcePath:
 			w.WriteHeader(http.StatusOK)
 
@@ -39,7 +39,7 @@ func TestGetServicesAndRoutesPreparedConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 
 		case ServicesPath:
 			w.WriteHeader(http.StatusOK)
@@ -126,7 +126,7 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 
 		case ConsumersPath:
 			w.WriteHeader(http.StatusOK)
