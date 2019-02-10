@@ -148,12 +148,14 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 		t.Fatalf("2 consumers should be exported")
 	}
 
-	if consumers.Index(0).Interface().(Consumer).Username != consumer1Username {
-		t.Fatalf("First consumer should have name john")
+	username := consumers.Index(0).Interface().(Consumer).Username
+	if  username != consumer1Username{
+		t.Fatalf("First consumer should have name %s, but it has %s", consumer1Username, username)
 	}
 
-	if consumers.Index(0).Interface().(Consumer).Key != consumer1Key {
-		t.Fatalf("First consumer should have name john")
+	key := consumers.Index(0).Interface().(Consumer).Key
+	if key != consumer1Key {
+		t.Fatalf("First consumer should have key %s, but it has %s", consumer1Key, key)
 	}
 }
 
