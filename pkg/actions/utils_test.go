@@ -28,3 +28,16 @@ func getConsumerKeyAuthURL(consumerId string) string {
 	routesPathElements := []string{ConsumersPath, consumerId, KeyAuthPath}
 	return strings.Join(routesPathElements, "/")
 }
+
+func getResourcePath(path string) string {
+	// The function that turns "/resource?size=10" into "resource"
+	resourcePath := path[1:]
+
+	questionMarkIndex := strings.IndexByte(resourcePath, '?')
+
+	if questionMarkIndex > -1 {
+		resourcePath = resourcePath[:questionMarkIndex]
+	}
+
+	return resourcePath
+}

@@ -17,7 +17,7 @@ func TestConfigFlushed(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 
 		case ServicesPath:
 			w.WriteHeader(http.StatusOK)

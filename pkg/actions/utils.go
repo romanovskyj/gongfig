@@ -1,11 +1,11 @@
 package actions
 
 import (
-	"net/url"
-	"net/http"
-	"log"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"log"
+	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -17,11 +17,21 @@ type resourceConfig struct {
 	Data Data `json:"data"`
 }
 
-// Get url and path and return concatenation
+// Get url, path items, query params and return concatenation
 // e.g http://localhost:8001, services will return http://localhost:8001/services
-func getFullPath(adminURL string, pathElements []string) string {
+func getFullPath(adminURL string, pathElements []string, params map[string]string) string {
 	uri, _ := url.Parse(adminURL)
 	path := strings.Join(pathElements, "/")
+
+	if len(params) > 0 {
+		q := uri.Query()
+		for key, value := range params {
+			q.Set(key, value)
+		}
+
+		uri.RawQuery = q.Encode()
+	}
+
 	uri.Path = path
 	return uri.String()
 }

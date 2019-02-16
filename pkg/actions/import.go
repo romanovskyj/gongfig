@@ -59,7 +59,7 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 	}
 
 
-	url := getFullPath(adminURL, []string{CertificatesPath})
+	url := getFullPath(adminURL, []string{CertificatesPath}, map[string]string{})
 
 	for _, item := range configMap[CertificatesPath] {
 		reqLimitChan <- true
@@ -72,7 +72,7 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 			certificate, certificate.Id, &concurrentStringMap)
 	}
 
-	url = getFullPath(adminURL, []string{ConsumersPath})
+	url = getFullPath(adminURL, []string{ConsumersPath}, map[string]string{})
 
 	for _, item := range configMap[ConsumersPath] {
 		reqLimitChan <- true
@@ -95,7 +95,7 @@ func createEntries(client *http.Client, adminURL string, configMap map[string][]
 		<- reqLimitChan
 	}
 
-	pluginsURL := getFullPath(adminURL, []string{PluginsPath})
+	pluginsURL := getFullPath(adminURL, []string{PluginsPath}, map[string]string{})
 
 	//Create plugins
 	for _, item := range configMap[PluginsPath] {
@@ -149,7 +149,9 @@ func createConsumersWithKeyAuths(requestBundle *ConnectionBundle, consumer Consu
 	idMap.Add(id, consumerExternalId)
 
 	if key != "" {
-		url := getFullPath(requestBundle.URL, []string{ConsumersPath, consumerExternalId, KeyAuthPath})
+		paths := []string{ConsumersPath, consumerExternalId, KeyAuthPath}
+
+		url := getFullPath(requestBundle.URL, paths, map[string]string{})
 		keyAuth := KeyAuth{Key: key}
 
 		_, err := requestNewResource(requestBundle.Client, keyAuth, url)
@@ -164,7 +166,7 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 	defer func() { <-requestBundle.ReqLimitChan}()
 
 	// Get path to the services collection
-	servicesURL := getFullPath(requestBundle.URL, []string{ServicesPath})
+	servicesURL := getFullPath(requestBundle.URL, []string{ServicesPath}, map[string]string{})
 
 	// Clear routes field as it is created in separate request
 	routes := service.Routes
@@ -186,7 +188,7 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 
 	// Compose path to routes
 	routesPathElements := []string{ServicesPath, service.Name, RoutesPath}
-	routesURL := getFullPath(requestBundle.URL, routesPathElements)
+	routesURL := getFullPath(requestBundle.URL, routesPathElements, map[string]string{})
 
 	// Create routes one by one
 	for _, route := range routes {
@@ -215,14 +217,16 @@ func createUpstreamsWithTargets(requestBundle *ConnectionBundle, upstream Upstre
 	// Clear id
 	upstream.Id = ""
 
-	upstreamsURL := getFullPath(requestBundle.URL, []string{UpstreamsPath})
+	upstreamsURL := getFullPath(requestBundle.URL, []string{UpstreamsPath}, map[string]string{})
 	_, err := requestNewResource(requestBundle.Client, upstream, upstreamsURL)
 
 	if err != nil {
 		log.Fatalf("Could not create new resource, %v\n", err)
 	}
 
-	targetsURL := getFullPath(requestBundle.URL, []string{UpstreamsPath, upstream.Name, TargetsPath})
+	paths := []string{UpstreamsPath, upstream.Name, TargetsPath}
+
+	targetsURL := getFullPath(requestBundle.URL, paths, map[string]string{})
 
 	for _, target := range targets {
 		_, err := requestNewResource(requestBundle.Client, target, targetsURL)

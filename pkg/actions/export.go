@@ -32,7 +32,7 @@ func composeConfig(config map[string]Data, client *http.Client, url string) map[
 		serviceMap[service.Id] = &service
 	}
 
-	// Add routes to services as nested files so futher it will be written to a file
+	// Add routes to services as nested files so further it will be written to a file
 	for _, item := range config[RoutesPath] {
 		var route Route
 		mapstructure.Decode(item, &route)
@@ -87,7 +87,7 @@ func composeConfig(config map[string]Data, client *http.Client, url string) map[
 
 		// Compose path to particular target
 		instancePathElements := []string{UpstreamsPath, upstream.Id, TargetsPath}
-		upstreamTargetsURL := getFullPath(url, instancePathElements)
+		upstreamTargetsURL := getFullPath(url, instancePathElements, map[string]string{"size": "500"})
 		targets := getResourceList(client, upstreamTargetsURL)
 
 		for _, item := range targets.Data {
@@ -162,7 +162,8 @@ func getPreparedConfig(adminURL string) map[string]interface{} {
 
 	// Collect representation of all resources
 	for _, resource := range Apis {
-		fullPath := getFullPath(adminURL, []string{resource})
+		//size means limit for number of elements that will be obtained within one request
+		fullPath := getFullPath(adminURL, []string{resource}, map[string]string{"size": "500"})
 
 		go getResourceListToChan(client, writeData, fullPath, resource)
 

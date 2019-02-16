@@ -72,7 +72,7 @@ func TestServiceWithRoutesCreated(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		// Use path without slash ([1:])
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case ServicesPath:
 			var body Service
 			json.NewDecoder(request.Body).Decode(&body)
@@ -116,7 +116,7 @@ func TestCertificatesCreated(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 
 		// Use path without slash ([1:])
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case CertificatesPath:
 			var body Certificate
 			json.NewDecoder(request.Body).Decode(&body)
@@ -152,7 +152,7 @@ func TestPluginCreated(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 
 		// Use path without slash ([1:])
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case PluginsPath:
 			var body Plugin
 			json.NewDecoder(request.Body).Decode(&body)
@@ -188,7 +188,7 @@ func TestPluginCreatedForCorrespondingService(t *testing.T) {
 		serviceExternalId := "service1"
 
 		// Use path without slash ([1:])
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case ServicesPath:
 			body := fmt.Sprintf(`{"id": "%s"}`, serviceExternalId)
 			io.WriteString(w, body)
@@ -226,7 +226,7 @@ func TestPluginCreatedForCorrespondingRoute(t *testing.T) {
 		routeExternalId := "route2"
 
 		// Use path without slash ([1:])
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case ServicesPath:
 			body := `{"id": "service2"}`
 			io.WriteString(w, body)
@@ -264,7 +264,7 @@ func TestServiceCreatedRoutesFailed(t *testing.T) {
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			// Use path without slash ([1:])
-			switch path := request.URL.Path[1:]; path {
+			switch path := getResourcePath(request.URL.Path); path {
 			case ServicesPath:
 				var body Service
 				json.NewDecoder(request.Body).Decode(&body)
@@ -307,7 +307,7 @@ func TestConsumerWithKeyAuthCreated(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 
 		// Use path without slash ([1:])
-		switch path := request.URL.Path[1:]; path {
+		switch path := getResourcePath(request.URL.Path); path {
 		case ConsumersPath:
 			body := fmt.Sprintf(`{"id": "%s"}`, externalConsumerId)
 			io.WriteString(w, body)
