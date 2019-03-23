@@ -78,16 +78,19 @@ func composeConfig(config map[string]Data, client *http.Client, url string) map[
 	// Obtain upstreams separately as it needs to do additional queries
 	// for obtaining nested targets (there is no /targets collection so
 	// only nested handling is possible)
-	var upstream Upstream
 	var upstreams []Upstream
-	var target Target
 
 	for _, item := range config[UpstreamsPath] {
+		var upstream Upstream
+
 		mapstructure.Decode(item, &upstream)
 
 		// Compose path to particular target
 		instancePathElements := []string{UpstreamsPath, upstream.Id, TargetsPath}
 		upstreamTargetsURL := getFullPath(url, instancePathElements, map[string]string{"size": "500"})
+
+		// Obtain targets
+		var target Target
 		targets := getResourceList(client, upstreamTargetsURL)
 
 		for _, item := range targets.Data {
