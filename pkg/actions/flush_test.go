@@ -1,12 +1,10 @@
 package actions
 
 import (
-	"testing"
-	"net/http/httptest"
-	"net/http"
 	"io"
-	"os"
-	"os/exec"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestConfigFlushed(t *testing.T) {
@@ -61,16 +59,17 @@ func TestConfigFlushed(t *testing.T) {
 }
 
 func TestFlushCannotConnect(t *testing.T) {
-	if os.Getenv("CHECK_EXIT") == "1" {
-		flushAll(DefaultURL)
+	logFatalfCalled := false
+
+	mockLogFatal := func(_ ...interface{}) {
+		logFatalfCalled = true
 	}
 
-	err := runExit("TestFlushCannotConnect")
-	e, ok := err.(*exec.ExitError)
+	logFatal = mockLogFatal
 
-	if ok && !e.Success() {
-		return
+	flushAll(DefaultURL)
+
+	if !logFatalfCalled {
+		t.Fatalf("Flush was not terminated")
 	}
-
-	t.Fatalf("process ran with err %v, want exit status 1", err)
 }

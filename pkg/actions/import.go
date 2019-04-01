@@ -1,14 +1,13 @@
 package actions
 
 import (
-	"os"
-	"log"
 	"encoding/json"
-	"net/http"
-	"time"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
+	"net/http"
+	"os"
 	"sync"
+	"time"
 )
 
 // ConcurrentStringMap - special map for synchronizing localIds with externals
@@ -143,7 +142,8 @@ func createConsumersWithKeyAuths(requestBundle *ConnectionBundle, consumer Consu
 	consumerExternalId, err := requestNewResource(requestBundle.Client, consumer, requestBundle.URL)
 
 	if err != nil {
-		log.Fatalf("Failed to create consumer, %v\n", err)
+		logFatalf("Failed to create consumer, %v\n", err)
+		return
 	}
 
 	idMap.Add(id, consumerExternalId)
@@ -157,7 +157,8 @@ func createConsumersWithKeyAuths(requestBundle *ConnectionBundle, consumer Consu
 		_, err := requestNewResource(requestBundle.Client, keyAuth, url)
 
 		if err != nil {
-			log.Fatalf("Failed to create key-auth, %v\n", err)
+			logFatalf("Failed to create key-auth, %v\n", err)
+			return
 		}
 	}
 }
@@ -181,7 +182,8 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 	serviceExternalId, err := requestNewResource(requestBundle.Client, service, servicesURL)
 
 	if err != nil {
-		log.Fatalf("Failed to create service, %v\n", err)
+		logFatalf("Failed to create service, %v\n", err)
+		return
 	}
 
 	idMap.Add(id, serviceExternalId)
@@ -199,7 +201,8 @@ func createServiceWithRoutes(requestBundle *ConnectionBundle, service Service, i
 		routeExternalId, err := requestNewResource(requestBundle.Client, route, routesURL)
 
 		if err != nil {
-			log.Fatalf("Could not create new resource, %v\n", err)
+			logFatalf("Could not create new resource, %v\n", err)
+			return
 		}
 
 		idMap.Add(id, routeExternalId)
@@ -221,7 +224,8 @@ func createUpstreamsWithTargets(requestBundle *ConnectionBundle, upstream Upstre
 	_, err := requestNewResource(requestBundle.Client, upstream, upstreamsURL)
 
 	if err != nil {
-		log.Fatalf("Could not create new resource, %v\n", err)
+		logFatalf("Could not create new resource, %v\n", err)
+		return
 	}
 
 	paths := []string{UpstreamsPath, upstream.Name, TargetsPath}
@@ -232,7 +236,8 @@ func createUpstreamsWithTargets(requestBundle *ConnectionBundle, upstream Upstre
 		_, err := requestNewResource(requestBundle.Client, target, targetsURL)
 
 		if err != nil {
-			log.Fatalf("Failed to create target, %v\n", err)
+			logFatalf("Failed to create target, %v\n", err)
+			return
 		}
 	}
 
@@ -245,14 +250,16 @@ func Import(adminURL string, filePath string) {
 	configFile, err := os.OpenFile(filePath, os.O_RDONLY,0444)
 
 	if err != nil {
-		log.Fatalf("Failed to read config file. %v\n", err.Error())
+		logFatalf("Failed to read config file. %v\n", err.Error())
+		return
 	}
 
 	jsonParser := json.NewDecoder(configFile)
 	var configMap = make(map[string][]interface{})
 
 	if err :=  jsonParser.Decode(&configMap); err != nil {
-		log.Fatalf("Failed to parse json file. %v\n", err)
+		logFatalf("Failed to parse json file. %v\n", err)
+		return
 	}
 
 	createEntries(client, adminURL, configMap)

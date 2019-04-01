@@ -1,16 +1,14 @@
 package actions
 
 import (
-	"testing"
-	"os"
-	"net/http"
-	"time"
-	"os/exec"
-	"strings"
-	"net/http/httptest"
 	"encoding/json"
-	"io"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
 )
 
 func getHTTPRequestBundle(url string) *ConnectionBundle {
@@ -29,38 +27,40 @@ func prepareAndCreateService(url string, concurrentStringMap *ConcurrentStringMa
 }
 
 func TestImportCannotConnect(t *testing.T) {
-	if os.Getenv("CHECK_EXIT") == "1" {
-		prepareAndCreateService(DefaultURL, &ConcurrentStringMap{store: make(map[string]string)})
+	logFatalfCalled := false
+
+	mockLogFatalf := func(_ string, _ ...interface{}) {
+		logFatalfCalled = true
 	}
 
-	err := runExit("TestImportCannotConnect")
-	e, ok := err.(*exec.ExitError)
+	logFatalf = mockLogFatalf
 
-	if ok && !e.Success() {
-		return
+	prepareAndCreateService(DefaultURL, &ConcurrentStringMap{store: make(map[string]string)})
+
+	if !logFatalfCalled {
+		t.Fatalf("Import was not terminated")
 	}
-
-	t.Fatalf("process ran with err %v, want exit status 1", err)
 }
 
 func TestImportBadRequest(t *testing.T) {
-	if os.Getenv("CHECK_EXIT") == "1" {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusBadRequest)
-		}))
-		defer ts.Close()
+	logFatalCalled := false
 
-		prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
+	mockLogFatal := func(_ ...interface{}) {
+		logFatalCalled = true
 	}
 
-	err := runExit("TestImportBadRequest")
-	e, ok := err.(*exec.ExitError)
+	logFatal = mockLogFatal
 
-	if ok && !e.Success() {
-		return
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer ts.Close()
+
+	prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
+
+	if !logFatalCalled {
+		t.Fatalf("Import was not terminated")
 	}
-
-	t.Fatalf("process ran with err %v, want exit status 1", err)
 }
 
 func TestServiceWithRoutesCreated(t *testing.T) {
@@ -258,42 +258,43 @@ func TestPluginCreatedForCorrespondingRoute(t *testing.T) {
 }
 
 func TestServiceCreatedRoutesFailed(t *testing.T) {
-	if os.Getenv("CHECK_EXIT") == "1" {
-		routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
-		routesPath := strings.Join(routesPathElements, "/")
+	logFatalCalled := false
 
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			// Use path without slash ([1:])
-			switch path := getResourcePath(request.URL.Path); path {
-			case ServicesPath:
-				var body Service
-				json.NewDecoder(request.Body).Decode(&body)
+	mockLogFatal := func(_ ...interface{}) {
+		logFatalCalled = true
+	}
 
-				if body.Name != TestEmailService.Name {
-					t.Error("service name is not correct")
-				}
+	logFatal = mockLogFatal
 
-				w.WriteHeader(http.StatusCreated)
+	routesPathElements := []string{ServicesPath, TestEmailService.Name, RoutesPath}
+	routesPath := strings.Join(routesPathElements, "/")
 
-			case routesPath:
-				w.WriteHeader(http.StatusBadRequest)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		// Use path without slash ([1:])
+		switch path := getResourcePath(request.URL.Path); path {
+		case ServicesPath:
+			var body Service
+			json.NewDecoder(request.Body).Decode(&body)
+
+			if body.Name != TestEmailService.Name {
+				t.Error("service name is not correct")
 			}
 
-		}))
+			w.WriteHeader(http.StatusCreated)
 
-		defer ts.Close()
+		case routesPath:
+			w.WriteHeader(http.StatusBadRequest)
+		}
 
-		prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
+	}))
+
+	defer ts.Close()
+
+	prepareAndCreateService(ts.URL, &ConcurrentStringMap{store: make(map[string]string)})
+
+	if !logFatalCalled {
+		t.Fatalf("Import was not terminated")
 	}
-
-	err := runExit("TestServiceCreatedRoutesFailed")
-	e, ok := err.(*exec.ExitError)
-
-	if ok && !e.Success() {
-		return
-	}
-
-	t.Fatalf("process ran with err %v, want exit status 1", err)
 }
 
 func TestConsumerWithKeyAuthCreated(t *testing.T) {

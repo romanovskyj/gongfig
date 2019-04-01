@@ -1,15 +1,13 @@
 package actions
 
 import (
-	"testing"
-	"net/http/httptest"
-	"net/http"
-	"io"
-	"os"
-	"os/exec"
-	"reflect"
-	"fmt"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"testing"
 )
 
 func getTestServer(resourcePath, body string) (*httptest.Server, error) {
@@ -184,19 +182,4 @@ func TestGetPluginsPreparedConfig(t *testing.T) {
 	if plugins.Index(0).Interface().(Plugin).Id != "1" {
 		t.Fatalf("Exported plugin should have correct id")
 	}
-}
-
-func TestExportCannotConnect(t *testing.T) {
-	if os.Getenv("CHECK_EXIT") == "1" {
-		flushAll(DefaultURL)
-	}
-
-	err := runExit("TestExportCannotConnect")
-	e, ok := err.(*exec.ExitError)
-
-	if ok && !e.Success() {
-		return
-	}
-
-	t.Fatalf("process ran with err %v, want exit status 1", err)
 }

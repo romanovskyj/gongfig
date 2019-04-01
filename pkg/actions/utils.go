@@ -40,7 +40,8 @@ func getResourceList(client *http.Client, fullPath string) resourceConfig {
 	response, err := client.Get(fullPath)
 
 	if err != nil {
-		log.Fatal("Request to Kong admin failed")
+		logFatal("Request to Kong admin failed")
+		return resourceConfig{}
 	}
 
 	defer response.Body.Close()
@@ -66,19 +67,20 @@ func requestNewResource(client *http.Client, resource interface{}, url string) (
 
 	// Create services first, as routes are nested resources
 	response, err := client.Post(url, "application/json;charset=utf-8", body)
-	defer response.Body.Close()
 
 	if err != nil {
-		log.Fatal("Request to Kong admin failed")
+		logFatal("Request to Kong admin failed")
 		return "", err
 	}
+
+	defer response.Body.Close()
 
 	if response.StatusCode != 201 {
 		message := Message{}
 		json.NewDecoder(response.Body).Decode(&message)
 
 		log.Println(message.Message)
-		log.Fatal("Was not able to create resource")
+		logFatal("Was not able to create resource")
 		return "", err
 	}
 
@@ -95,7 +97,7 @@ func addResource(connectionBundle *ConnectionBundle, resource interface{}, resou
 	externalId, err := requestNewResource(connectionBundle.Client, resource, connectionBundle.URL)
 
 	if err != nil {
-		log.Fatalf("Failed to create resource, %v\n", err)
+		logFatalf("Failed to create resource, %v\n", err)
 	}
 
 	idMap.Add(resourceId, externalId)
