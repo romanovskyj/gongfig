@@ -71,7 +71,7 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 				response, err := client.Do(request)
 
 				if err != nil {
-					log.Fatal("Request to Kong admin api failed: ", resourceType)
+					logFatal("Request to Kong admin api failed: ", resourceType)
 				}
 
 				if response.StatusCode != 204 {
@@ -84,7 +84,7 @@ func flushResources(client *http.Client, url string, config map[string]Data) {
 						json.NewDecoder(response.Body).Decode(&message)
 						log.Println(message.Message)
 
-						log.Fatal("Was not able to Delete item ", instance.Id)
+						logFatal("Was not able to Delete item ", instance.Id)
 					}
 				}
 			}(instance)

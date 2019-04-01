@@ -1,9 +1,18 @@
 package actions
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 // Timeout - how long http client should wait before terminating connection
 const Timeout = 10
+
+// logFatal - replace with own logFatal in order to mock it during the tests
+var logFatal = log.Fatal
+
+// logFatalf - replace with own logFatalf in order to mock it during the tests
+var logFatalf = log.Fatalf
 
 // DefaultURL keeps url when kong api is accessed with port forwarding (as mentioned in readme)
 const DefaultURL = "http://localhost:8001"
