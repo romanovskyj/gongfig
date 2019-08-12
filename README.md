@@ -41,6 +41,21 @@ gongfig import --url=http://localhost:8001 --file /tmp/config.json
 gongfig flush --url=http://localhost:8001
 ```
 
+#### Docker
+
+```
+docker run --rm eromanovskyj/gongfig:latest --version
+```
+
+```
+docker run --rm eromanovskyj/gongfig:latest flush --url=http://localhost:8001
+```
+
+```
+docker run --rm -v `pwd`/config.json:/tmp eromanovskyj/gongfig:latest import --url=http://localhost:8001 --file /tmp/config.json
+```
+
+
 ## Deployment
 As usually Kong admin api is not reachable externally, you can forward port to your local computer:
 ```
