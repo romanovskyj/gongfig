@@ -3,6 +3,7 @@ package actions
 import (
 	"errors"
 	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -94,7 +95,12 @@ func TestGetCertificatesPreparedConfig(t *testing.T) {
 		t.Fatalf("2 certificates should be exported")
 	}
 
-	if len(certificates.Index(0).Interface().(Certificate).Snis) != 1 {
+	certMap := certificates.Index(1).Interface()
+
+	var certificate Certificate
+	mapstructure.Decode(certMap, &certificate)
+
+	if len(certificate.Snis) != 1 {
 		t.Fatalf("Exported certificate should have 1 sni")
 	}
 }
@@ -114,7 +120,7 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 		{"id": "%s", "username": "%s", "created_at": 1422386534, "customId": "%s"},
 		{"id": "%s", "username": "%s", "created_at": 1422386534, "custom_id": "%s"}
 	]}`, consumer1Id, consumer1Username, consumer1CustomId,
-		 consumer2Id,consumer2Username, consumer2CustomId)
+		consumer2Id, consumer2Username, consumer2CustomId)
 
 	keyAuthAnswerBody := fmt.Sprintf(`{"data": [
 		{"consumer_id": "%s", "key": "%s"},
@@ -147,7 +153,7 @@ func TestGetConsumersPreparedConfig(t *testing.T) {
 	}
 
 	username := consumers.Index(0).Interface().(Consumer).Username
-	if  username != consumer1Username{
+	if username != consumer1Username {
 		t.Fatalf("First consumer should have name %s, but it has %s", consumer1Username, username)
 	}
 
@@ -179,7 +185,12 @@ func TestGetPluginsPreparedConfig(t *testing.T) {
 		t.Fatalf("2 plugins should be exported")
 	}
 
-	if plugins.Index(0).Interface().(Plugin).Id != "1" {
+	pluginMap := plugins.Index(0).Interface()
+	var plugin Plugin
+
+	mapstructure.Decode(pluginMap, &plugin)
+
+	if plugin.Id != "1" {
 		t.Fatalf("Exported plugin should have correct id")
 	}
 }

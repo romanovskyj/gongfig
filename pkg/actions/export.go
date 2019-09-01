@@ -1,22 +1,22 @@
 package actions
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
-	"encoding/json"
-	"io/ioutil"
-	"fmt"
 
 	"github.com/mitchellh/mapstructure"
+	"gopkg.in/getlantern/deepcopy.v1"
 	"sort"
-	"github.com/jinzhu/copier"
 )
 
 // resourceAnswer contains resource name and its configuration so
 // file writer can compose json with name as a key and complete resource configuration as a value
 type resourceAnswer struct {
 	resourceName string
-	config Data
+	config       Data
 }
 
 // Prepare config for writing: put routes as nested resources of services, omit unnecessary fields etc
@@ -145,7 +145,7 @@ func composeConfig(config map[string]Data, client *http.Client, url string) map[
 			mapstructure.Decode(item, &resourceBundle.Struct)
 
 			var resource interface{}
-			copier.Copy(&resource, resourceBundle.Struct)
+			deepcopy.Copy(&resource, &resourceBundle.Struct)
 
 			collection = append(collection, resource)
 		}
@@ -180,7 +180,7 @@ func getPreparedConfig(adminURL string) map[string]interface{} {
 	// It waits to obtain from channel exactly the same amount as number of resources
 	// After that it composes the data in proper format, writes to a file and closes
 	for {
-		resource := <- writeData
+		resource := <-writeData
 		config[resource.resourceName] = resource.config
 
 		resourcesNum--
