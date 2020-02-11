@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"os"
 	"log"
 	"fmt"
@@ -15,19 +15,19 @@ func getApp() *cli.App {
 	app.Version = "0.0.1"
 
 	flags := []cli.Flag {
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name: "url",
 			Value: actions.DefaultURL,
 			Usage: "Kong admin api url",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name: "file",
 			Value: "config.yml",
 			Usage: "File for export/import",
 		},
 	}
 
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name: "export",
 			Usage: "Obtain services and routes, write it to the config file",
